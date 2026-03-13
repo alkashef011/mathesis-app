@@ -1357,16 +1357,19 @@ export default function App() {
       try {
         const sanitized = sanitizeConv(conv);
 
-        const res = await fetch("http://localhost:5000/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const res = await fetch(
+          "https://mathesis-backend.onrender.com/api/chat",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messages: sanitized,
+              system: systemOverride || SYSTEM_PROMPT,
+            }),
           },
-          body: JSON.stringify({
-            messages: sanitized,
-            system: systemOverride || SYSTEM_PROMPT,
-          }),
-        });
+        );
 
         const data = await res.json();
 
@@ -1394,16 +1397,19 @@ export default function App() {
         .map((m) => `${m.role}: ${m.content?.slice(0, 200)}`)
         .join("\n");
 
-      const res = await fetch("http://localhost:5000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const res = await fetch(
+        "https://mathesis-backend.onrender.com/api/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            system: SUMMARY_SYSTEM,
+            messages: [{ role: "user", content: excerpt }],
+          }),
         },
-        body: JSON.stringify({
-          system: SUMMARY_SYSTEM,
-          messages: [{ role: "user", content: excerpt }],
-        }),
-      });
+      );
 
       const data = await res.json();
       return data.text || "";
