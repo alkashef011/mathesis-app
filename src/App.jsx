@@ -1902,7 +1902,7 @@ export default function App() {
                       fontFamily: "'Cormorant Garamond',serif",
                     }}
                   >
-                    YOUR JOURNEY · YOUR PACE · YOUR DISCOVERY
+                    YOUR JOURNEY · YOUR PACE · YOUR DISCOVERY ✦
                   </div>
                 </div>
               </div>
