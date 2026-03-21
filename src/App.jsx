@@ -1,296 +1,218 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─────────────────────────────────────────────────────────────
-// CONSTELLATION DATA — the mathematical universe map
+// CONSTELLATION DATA — fractal two-level mathematical universe
 // ─────────────────────────────────────────────────────────────
-const CONSTELLATION_NODES = [
+const REALMS = [
   {
-    id: "numbers",
-    label: "Numbers",
-    x: 50,
-    y: 50,
-    desc: "The atoms of all mathematics",
+    id:"numbers", label:"Numbers", x:50, y:50, desc:"The atoms of all mathematics",
+    children:[
+      { id:"integers",        label:"Integers",            desc:"Whole numbers — stretching infinitely in both directions",                   keywords:["integer","whole number","natural number","counting number","negative number"] },
+      { id:"zero",            label:"Zero",                desc:"The number that took civilisations a thousand years to accept",              keywords:["zero","nothing","null","0","origin","nothingness"] },
+      { id:"rational",        label:"Rational Numbers",    desc:"Every number expressible as a fraction p/q",                                keywords:["rational","fraction","ratio","p/q","terminating","recurring decimal"] },
+      { id:"irrational",      label:"Irrational Numbers",  desc:"Numbers that cannot be expressed as any fraction — they go on forever",     keywords:["irrational","cannot be expressed as fraction","non-repeating","non-terminating"] },
+      { id:"real_numbers",    label:"Real Numbers",        desc:"Every point on the continuous number line",                                 keywords:["real number","number line","continuous","real line"] },
+      { id:"number_systems",  label:"Number Systems",      desc:"Decimal, binary, hexadecimal — different languages for the same quantities",keywords:["binary","hexadecimal","base 2","base 10","numeral system","number base"] },
+    ]
   },
   {
-    id: "infinity",
-    label: "Infinity",
-    x: 22,
-    y: 17,
-    desc: "Where the mind meets the boundless",
+    id:"infinity", label:"Infinity", x:22, y:17, desc:"Where the mind meets the boundless",
+    children:[
+      { id:"aleph",           label:"Aleph Numbers",       desc:"Cantor's ladder of infinities — each one larger than the last",            keywords:["aleph","ℵ","aleph null","aleph zero","aleph naught","types of infinity"] },
+      { id:"countable_inf",   label:"Countable Infinity",  desc:"Infinities you can list, even if you never finish listing them",           keywords:["countable","countably infinite","list all","enumerable","countable infinity"] },
+      { id:"uncountable_inf", label:"Uncountable Infinity",desc:"Infinities so vast no list could ever contain them",                       keywords:["uncountable","uncountably infinite","more than countable","uncountable infinity"] },
+      { id:"hilbert_hotel",   label:"Hilbert's Hotel",     desc:"A hotel with infinitely many full rooms — that always has space for one more",keywords:["hilbert","hilbert's hotel","infinite hotel","infinite rooms"] },
+      { id:"zeno",            label:"Zeno's Paradoxes",    desc:"Can you reach the finish if you always cross half the remaining distance?", keywords:["zeno","achilles","tortoise","zeno's paradox","arrow paradox"] },
+    ]
   },
   {
-    id: "primes",
-    label: "Prime Numbers",
-    x: 73,
-    y: 14,
-    desc: "The irreducible building blocks",
+    id:"primes", label:"Prime Numbers", x:73, y:14, desc:"The irreducible building blocks",
+    children:[
+      { id:"twin_primes",     label:"Twin Primes",         desc:"Pairs of primes separated by 2 — and nobody knows if they ever end",       keywords:["twin prime","prime pair","11 and 13","17 and 19","twin prime conjecture"] },
+      { id:"factorization",   label:"Prime Factorization", desc:"Every number is a unique product of primes — the DNA of integers",         keywords:["prime factor","factorize","factor tree","prime decomposition","fundamental theorem of arithmetic"] },
+      { id:"sieve",           label:"Sieve of Eratosthenes",desc:"An ancient algorithm for sifting all primes from a sea of numbers",       keywords:["sieve","eratosthenes","sieve of eratosthenes"] },
+      { id:"goldbach",        label:"Goldbach's Conjecture",desc:"Every even number greater than 2 is the sum of two primes — probably",    keywords:["goldbach","sum of two primes","goldbach conjecture","goldbach's"] },
+      { id:"riemann",         label:"Riemann Hypothesis",  desc:"The greatest unsolved mystery in all of mathematics",                      keywords:["riemann","riemann hypothesis","zeta function","non-trivial zeros","millennium prize"] },
+      { id:"mersenne",        label:"Mersenne Primes",     desc:"Primes of the form 2ⁿ−1 — where the largest known primes live",           keywords:["mersenne","mersenne prime","2^n minus 1"] },
+    ]
   },
   {
-    id: "geometry",
-    label: "Geometry",
-    x: 14,
-    y: 55,
-    desc: "Mathematics made visible",
+    id:"geometry", label:"Geometry", x:14, y:55, desc:"Mathematics made visible",
+    children:[
+      { id:"triangles",       label:"Triangles",           desc:"The simplest polygon — and the foundation of all structure",               keywords:["triangle","trigonometry","sine","cosine","tangent","hypotenuse"] },
+      { id:"pythagoras",      label:"Pythagorean Theorem", desc:"a² + b² = c² — the most celebrated equation in geometry",                keywords:["pythagorean theorem","pythagoras","right angle triangle","a squared b squared"] },
+      { id:"euclid",          label:"Euclidean Geometry",  desc:"The geometry of flat space, built from five elegant axioms",              keywords:["euclid","euclidean","axiom","postulate","parallel","five postulates"] },
+      { id:"non_euclidean",   label:"Non-Euclidean Geometry",desc:"What happens when parallel lines curve and eventually meet",            keywords:["non-euclidean","curved space","spherical geometry","hyperbolic geometry","riemannian"] },
+      { id:"conic_sections",  label:"Conic Sections",      desc:"Circles, ellipses, parabolas — all born from slicing a single cone",      keywords:["conic","parabola","ellipse","hyperbola","conic section"] },
+    ]
   },
   {
-    id: "algebra",
-    label: "Algebra",
-    x: 83,
-    y: 46,
-    desc: "The language of unknowns",
+    id:"algebra", label:"Algebra", x:83, y:46, desc:"The language of unknowns",
+    children:[
+      { id:"equations",       label:"Equations",           desc:"Statements of equality — and the art of finding what makes them true",    keywords:["equation","solving","solution","both sides","balance"] },
+      { id:"polynomials",     label:"Polynomials",         desc:"Expressions built from powers of variables — the workhorses of algebra",  keywords:["polynomial","monomial","binomial","degree","coefficient","leading term"] },
+      { id:"quadratic",       label:"Quadratic Formula",   desc:"x = (−b ± √(b²−4ac)) / 2a — solves any quadratic",                      keywords:["quadratic","quadratic formula","discriminant","vertex","x squared"] },
+      { id:"functions",       label:"Functions",           desc:"Rules that transform every input into exactly one output",                keywords:["function","f of x","f(x)","domain","range","mapping","input","output"] },
+      { id:"linear_algebra",  label:"Linear Algebra",      desc:"Vectors, matrices, and the geometry of many dimensions at once",         keywords:["matrix","vector","linear algebra","determinant","eigenvalue","eigenvector"] },
+      { id:"abstract_algebra",label:"Abstract Algebra",    desc:"Algebra stripped to its pure essence — groups, rings, and fields",       keywords:["group","ring","field","abstract algebra","group theory","homomorphism"] },
+    ]
   },
   {
-    id: "patterns",
-    label: "Patterns",
-    x: 54,
-    y: 86,
-    desc: "Order hidden in chaos",
+    id:"patterns", label:"Patterns", x:54, y:86, desc:"Order hidden in chaos",
+    children:[
+      { id:"fibonacci_seq",   label:"Fibonacci Sequence",  desc:"1, 1, 2, 3, 5, 8, 13... woven into the fabric of nature",               keywords:["fibonacci sequence","fibonacci number","fibonacci spiral"] },
+      { id:"arithmetic_seq",  label:"Arithmetic Sequences",desc:"Sequences where each step adds the same fixed amount",                   keywords:["arithmetic sequence","arithmetic progression","common difference","linear sequence"] },
+      { id:"geometric_seq",   label:"Geometric Sequences", desc:"Sequences where each step multiplies by the same fixed ratio",          keywords:["geometric sequence","geometric progression","common ratio","exponential growth sequence"] },
+      { id:"pascal",          label:"Pascal's Triangle",   desc:"A triangle of numbers hiding infinite patterns within",                  keywords:["pascal","pascal's triangle","binomial coefficient","choose","nCr"] },
+      { id:"induction",       label:"Mathematical Induction",desc:"Proving something for all numbers by proving an infinite domino effect",keywords:["induction","mathematical induction","base case","inductive step","prove for all n"] },
+    ]
   },
   {
-    id: "symmetry",
-    label: "Symmetry",
-    x: 27,
-    y: 79,
-    desc: "The deep grammar of nature",
+    id:"symmetry", label:"Symmetry", x:27, y:79, desc:"The deep grammar of nature",
+    children:[
+      { id:"rotational_sym",  label:"Rotational Symmetry", desc:"Shapes that look identical after being rotated",                         keywords:["rotational symmetry","order of rotation","rotational","turns symmetry"] },
+      { id:"reflective_sym",  label:"Reflective Symmetry", desc:"Mirror images — the symmetry the human eye notices first",              keywords:["reflective symmetry","line of symmetry","mirror symmetry","bilateral symmetry"] },
+      { id:"group_theory",    label:"Group Theory",        desc:"The algebra of symmetry — the mathematics of transformations",           keywords:["group theory","symmetry group","permutation","symmetric group","group operation"] },
+      { id:"wallpaper",       label:"Wallpaper Groups",    desc:"There are exactly 17 distinct ways to tile a flat plane with repeating symmetry",keywords:["wallpaper group","tiling","tessellation","17 wallpaper","plane symmetry"] },
+      { id:"noether",         label:"Noether's Theorem",   desc:"Every symmetry in physics corresponds to a conservation law",           keywords:["noether","emmy noether","conservation law","symmetry physics","noether's theorem"] },
+    ]
   },
   {
-    id: "calculus",
-    label: "Calculus",
-    x: 79,
-    y: 73,
-    desc: "The mathematics of change",
+    id:"calculus", label:"Calculus", x:79, y:73, desc:"The mathematics of change",
+    children:[
+      { id:"derivatives",     label:"Derivatives",         desc:"The instantaneous rate of change — the slope of a curve at a single point",keywords:["derivative","differentiation","rate of change","dy/dx","d/dx","differentiate"] },
+      { id:"integrals",       label:"Integrals",           desc:"The area under a curve — and the inverse of differentiation",            keywords:["integral","integration","area under","antiderivative","∫","integrate"] },
+      { id:"ftc",             label:"Fundamental Theorem", desc:"The theorem that unites differentiation and integration in one stroke",  keywords:["fundamental theorem of calculus","ftc","fundamental theorem"] },
+      { id:"taylor_series",   label:"Taylor Series",       desc:"Any smooth function written as an infinite sum of simpler polynomial terms",keywords:["taylor series","taylor","maclaurin","power series","taylor expansion"] },
+      { id:"diff_equations",  label:"Differential Equations",desc:"Equations involving rates of change — the native language of physics", keywords:["differential equation","ode","ordinary differential","diff eq","dy/dx equals"] },
+    ]
   },
   {
-    id: "euler",
-    label: "Euler's Identity",
-    x: 11,
-    y: 35,
-    desc: "The most beautiful equation",
+    id:"euler", label:"Euler's Identity", x:11, y:35, desc:"The most beautiful equation",
+    children:[
+      { id:"euler_number",    label:"e — Euler's Number",  desc:"2.718... the base of natural growth, compounding, and decay",           keywords:["euler's number","e equals 2.718","natural base","e^x","e to the x","2.718"] },
+      { id:"euler_formula",   label:"Euler's Formula",     desc:"e^(iθ) = cos θ + i sin θ — the bridge between exponentials and circles",keywords:["euler's formula","e to the i","e^iθ","complex exponential"] },
+      { id:"unit_circle",     label:"The Unit Circle",     desc:"The circle of radius 1 that secretly contains all of trigonometry",     keywords:["unit circle","radius 1","sin and cos circle","circle trigonometry"] },
+      { id:"five_constants",  label:"Five Constants United",desc:"e^(iπ) + 1 = 0 — five fundamental constants in one breathtaking equation",keywords:["five constants","e pi i","most beautiful equation","e^iπ + 1","e to the i pi"] },
+    ]
   },
   {
-    id: "fractals",
-    label: "Fractals",
-    x: 89,
-    y: 27,
-    desc: "Infinity folded into finite shapes",
+    id:"fractals", label:"Fractals", x:89, y:27, desc:"Infinity folded into finite shapes",
+    children:[
+      { id:"mandelbrot",      label:"Mandelbrot Set",      desc:"Infinite complexity from a single rule: z maps to z² + c",              keywords:["mandelbrot","mandelbrot set","z squared plus c","complex plane fractal"] },
+      { id:"sierpinski",      label:"Sierpinski Triangle", desc:"A triangle made of triangles made of triangles — descending forever",   keywords:["sierpinski","sierpinski triangle","sierpinski gasket"] },
+      { id:"fractal_dim",     label:"Fractal Dimension",   desc:"A dimension that doesn't have to be a whole number",                    keywords:["fractal dimension","hausdorff dimension","non-integer dimension","fractional dimension"] },
+      { id:"chaos",           label:"Chaos Theory",        desc:"Perfectly deterministic systems that are impossible to predict",        keywords:["chaos","butterfly effect","sensitive dependence","chaos theory","strange attractor","lorenz"] },
+    ]
   },
   {
-    id: "topology",
-    label: "Topology",
-    x: 41,
-    y: 21,
-    desc: "The mathematics of continuity",
+    id:"topology", label:"Topology", x:41, y:21, desc:"The mathematics of continuity",
+    children:[
+      { id:"mobius",          label:"Möbius Strip",        desc:"A surface with only one side and one edge",                             keywords:["möbius","mobius","moebius","one-sided surface","möbius strip"] },
+      { id:"klein_bottle",    label:"Klein Bottle",        desc:"A closed surface with no inside or outside — impossible in 3D",        keywords:["klein bottle","klein","one-sided closed surface"] },
+      { id:"knot_theory",     label:"Knot Theory",         desc:"The mathematics of tangles — with deep connections to DNA and physics", keywords:["knot","knot theory","trefoil knot","unknot","knotted"] },
+      { id:"four_color",      label:"Four Color Theorem",  desc:"Any map needs only four colors so no adjacent regions share one",       keywords:["four color","four colour","map coloring","chromatic number","planar graph"] },
+      { id:"euler_char",      label:"Euler Characteristic",desc:"V − E + F = 2 — a number that captures the essential shape of a surface",keywords:["euler characteristic","v minus e plus f","vertices edges faces","euler formula graph"] },
+    ]
   },
   {
-    id: "probability",
-    label: "Probability",
-    x: 69,
-    y: 89,
-    desc: "Taming the language of chance",
+    id:"probability", label:"Probability", x:69, y:89, desc:"Taming the language of chance",
+    children:[
+      { id:"conditional",     label:"Conditional Probability",desc:"The probability of A, given that B has already happened",           keywords:["conditional probability","given that","p(a|b)","given","conditional"] },
+      { id:"bayes",           label:"Bayes' Theorem",      desc:"The formula for updating your beliefs in light of new evidence",       keywords:["bayes","bayes' theorem","bayesian","prior","posterior","likelihood","bayes rule"] },
+      { id:"expected_val",    label:"Expected Value",      desc:"The long-run average — what you expect across infinitely many repetitions",keywords:["expected value","expectation","mean","e(x)","long run average","average outcome"] },
+      { id:"normal_dist",     label:"Normal Distribution", desc:"The bell curve — the most important distribution in nature and statistics",keywords:["normal distribution","bell curve","gaussian","standard deviation","bell-shaped","normally distributed"] },
+      { id:"law_of_large",    label:"Law of Large Numbers",desc:"Why casinos always win and why averages converge",                     keywords:["law of large numbers","large numbers","converges","long run","sample mean converge"] },
+    ]
   },
   {
-    id: "goldenratio",
-    label: "Golden Ratio",
-    x: 17,
-    y: 89,
-    desc: "Nature's secret proportion",
-  },
-  { id: "pi", label: "π", x: 91, y: 60, desc: "The circle's eternal secret" },
-  {
-    id: "complex",
-    label: "Complex Numbers",
-    x: 37,
-    y: 67,
-    desc: "Numbers that rotate reality",
+    id:"goldenratio", label:"Golden Ratio", x:17, y:89, desc:"Nature's secret proportion",
+    children:[
+      { id:"phi_value",       label:"φ — Phi",             desc:"1.618... the ratio considered most aesthetically perfect",              keywords:["phi","φ","1.618","golden ratio value","divine proportion value"] },
+      { id:"golden_rect",     label:"Golden Rectangle",    desc:"A rectangle whose proportions appear throughout art and architecture",   keywords:["golden rectangle","golden proportion","golden rectangle architecture"] },
+      { id:"golden_spiral",   label:"Golden Spiral",       desc:"The logarithmic spiral found in shells, galaxies, and hurricanes",      keywords:["golden spiral","logarithmic spiral","nautilus shell","galaxy spiral"] },
+      { id:"phyllotaxis",     label:"Phyllotaxis",         desc:"How plants arrange seeds and leaves using the mathematics of the golden angle",keywords:["phyllotaxis","sunflower seeds","leaf arrangement","plant spiral","golden angle"] },
+    ]
   },
   {
-    id: "set_theory",
-    label: "Set Theory",
-    x: 62,
-    y: 32,
-    desc: "The foundation of all mathematics",
+    id:"pi", label:"π", x:91, y:60, desc:"The circle's eternal secret",
+    children:[
+      { id:"pi_geometry",     label:"Pi and Circles",      desc:"C = 2πr and A = πr² — where π was born and why it must be irrational", keywords:["circumference","pi r squared","2 pi r","area of circle","c equals 2 pi r"] },
+      { id:"pi_everywhere",   label:"Pi in Unexpected Places",desc:"Pi appears in probability, physics, and primes — far beyond any circle",keywords:["pi in nature","pi physics","pi appears","pi probability","pi unexpected"] },
+      { id:"buffon",          label:"Buffon's Needle",     desc:"Drop a needle on a lined floor — and calculate pi from where it lands", keywords:["buffon","buffon's needle","needle floor","probability pi","buffon experiment"] },
+      { id:"pi_series",       label:"Infinite Series for Pi",desc:"π = 4(1 − ⅓ + ⅕ − ⅐ + ...) — an infinite sum converging to a circle's secret",keywords:["leibniz series","series for pi","pi approximation","infinite series pi","madhava pi"] },
+    ]
+  },
+  {
+    id:"complex", label:"Complex Numbers", x:37, y:67, desc:"Numbers that rotate reality",
+    children:[
+      { id:"imaginary_i",     label:"The Imaginary Unit i",desc:"i² = −1 — the number that shouldn't exist, and yet unlocks everything", keywords:["imaginary unit","i squared equals","√-1","square root of negative","imaginary number"] },
+      { id:"argand_plane",    label:"Argand Plane",        desc:"Plotting complex numbers as points in a two-dimensional plane",         keywords:["argand","complex plane","argand diagram","imaginary axis","real axis"] },
+      { id:"demoivre",        label:"De Moivre's Theorem", desc:"(cos θ + i sin θ)ⁿ = cos nθ + i sin nθ — powers become rotations",    keywords:["de moivre","demoivre","de moivre's theorem","complex powers"] },
+      { id:"roots_unity",     label:"Roots of Unity",      desc:"The n solutions to zⁿ = 1 form a perfect regular polygon in the complex plane",keywords:["roots of unity","nth root of unity","z^n equals 1","unity roots"] },
+    ]
+  },
+  {
+    id:"set_theory", label:"Set Theory", x:62, y:32, desc:"The foundation of all mathematics",
+    children:[
+      { id:"empty_set",       label:"The Empty Set",       desc:"The set containing nothing — from which all of mathematics is built",   keywords:["empty set","null set","∅","void set","set with nothing"] },
+      { id:"power_set",       label:"Power Set",           desc:"The set of all subsets — always strictly larger than the original",     keywords:["power set","all subsets","2^n subsets","set of subsets"] },
+      { id:"russell",         label:"Russell's Paradox",   desc:"The set of all sets that don't contain themselves — and why it broke mathematics",keywords:["russell's paradox","russell","barber paradox","set of all sets","self-reference"] },
+      { id:"axiom_choice",    label:"Axiom of Choice",     desc:"The controversial axiom: you can always choose one element from infinitely many sets",keywords:["axiom of choice","choice function","well-ordering","zermelo","ac"] },
+      { id:"cardinality",     label:"Cardinality",         desc:"How to measure the size of infinite sets — and prove some are larger than others",keywords:["cardinality","same size sets","bijection","one-to-one correspondence","comparing infinities"] },
+    ]
   },
 ];
 
+// ── Lookup tables built from REALMS
+const REALM_MAP = {};
+const CHILD_MAP = {};
+REALMS.forEach(realm => {
+  REALM_MAP[realm.id] = realm;
+  (realm.children || []).forEach(child => {
+    CHILD_MAP[child.id] = { ...child, parentId: realm.id };
+  });
+});
+const TOTAL_NODES = REALMS.length + Object.keys(CHILD_MAP).length;
+
+// ── Edges between outer realms (unchanged)
 const CONSTELLATION_EDGES = [
-  ["numbers", "infinity"],
-  ["numbers", "primes"],
-  ["numbers", "algebra"],
-  ["numbers", "patterns"],
-  ["numbers", "geometry"],
-  ["primes", "euler"],
-  ["primes", "set_theory"],
-  ["geometry", "symmetry"],
-  ["geometry", "euler"],
-  ["geometry", "goldenratio"],
-  ["geometry", "pi"],
-  ["geometry", "topology"],
-  ["algebra", "calculus"],
-  ["algebra", "complex"],
-  ["algebra", "set_theory"],
-  ["patterns", "fractals"],
-  ["patterns", "probability"],
-  ["patterns", "goldenratio"],
-  ["infinity", "set_theory"],
-  ["infinity", "calculus"],
-  ["symmetry", "topology"],
-  ["symmetry", "goldenratio"],
-  ["calculus", "pi"],
-  ["calculus", "complex"],
-  ["complex", "euler"],
-  ["fractals", "topology"],
-  ["probability", "set_theory"],
-  ["topology", "complex"],
+  ["numbers","infinity"],["numbers","primes"],["numbers","algebra"],["numbers","patterns"],
+  ["numbers","geometry"],["primes","euler"],["primes","set_theory"],["geometry","symmetry"],
+  ["geometry","euler"],["geometry","goldenratio"],["geometry","pi"],["geometry","topology"],
+  ["algebra","calculus"],["algebra","complex"],["algebra","set_theory"],["patterns","fractals"],
+  ["patterns","probability"],["patterns","goldenratio"],["infinity","set_theory"],
+  ["infinity","calculus"],["symmetry","topology"],["symmetry","goldenratio"],
+  ["calculus","pi"],["calculus","complex"],["complex","euler"],["fractals","topology"],
+  ["probability","set_theory"],["topology","complex"],
 ];
 
-const TOPIC_KEYWORDS = {
-  infinity: [
-    "infinity",
-    "infinite",
-    "∞",
-    "boundless",
-    "endless",
-    "cantor",
-    "aleph",
-    "limit",
-  ],
-  primes: [
-    "prime",
-    "primes",
-    "prime number",
-    "sieve",
-    "eratosthenes",
-    "divisible",
-    "factor",
-  ],
-  geometry: [
-    "geometry",
-    "geometric",
-    "shape",
-    "angle",
-    "triangle",
-    "circle",
-    "euclid",
-    "line",
-    "point",
-    "polygon",
-  ],
-  algebra: [
-    "algebra",
-    "equation",
-    "variable",
-    "solve",
-    "unknown",
-    "polynomial",
-    "quadratic",
-    "expression",
-  ],
-  patterns: [
-    "pattern",
-    "sequence",
-    "series",
-    "fibonacci",
-    "rule",
-    "structure",
-    "recurrence",
-  ],
-  symmetry: [
-    "symmetry",
-    "symmetric",
-    "rotation",
-    "reflection",
-    "group",
-    "invariant",
-    "transformation",
-  ],
-  calculus: [
-    "calculus",
-    "derivative",
-    "integral",
-    "limit",
-    "rate of change",
-    "newton",
-    "leibniz",
-    "differentiat",
-  ],
-  euler: [
-    "euler",
-    "e^iπ",
-    "identity",
-    "eiπ",
-    "beautiful equation",
-    "e to the i",
-    "euler's formula",
-  ],
-  fractals: [
-    "fractal",
-    "self-similar",
-    "mandelbrot",
-    "sierpinski",
-    "dimension",
-    "recursive",
-    "self similar",
-  ],
-  topology: [
-    "topology",
-    "topological",
-    "donut",
-    "torus",
-    "klein",
-    "möbius",
-    "moebius",
-    "deform",
-    "continuous",
-  ],
-  probability: [
-    "probability",
-    "random",
-    "chance",
-    "likelihood",
-    "statistics",
-    "expected value",
-    "distribution",
-    "odds",
-  ],
-  goldenratio: [
-    "golden ratio",
-    "phi",
-    "φ",
-    "1.618",
-    "golden",
-    "golden spiral",
-    "divine proportion",
-  ],
-  pi: [
-    "π",
-    "pi",
-    "3.14159",
-    "3.14",
-    "circumference",
-    "diameter",
-    "circle constant",
-  ],
-  complex: [
-    "complex number",
-    "imaginary",
-    "i²",
-    "√-1",
-    "imaginary unit",
-    "real and imaginary",
-    "argand",
-  ],
-  set_theory: [
-    "set theory",
-    "set",
-    "subset",
-    "union",
-    "intersection",
-    "empty set",
-    "cantor",
-    "cardinality",
-    "element of",
-  ],
+// ── Keyword detection for all nodes
+const TOPIC_KEYWORDS = {};
+const REALM_SEED_KEYWORDS = {
+  numbers:     ["number","counting","arithmetic","numeral"],
+  infinity:    ["infinity","infinite","∞","boundless","endless"],
+  primes:      ["prime","primes","prime number"],
+  geometry:    ["geometry","geometric","shape","polygon"],
+  algebra:     ["algebra","algebraic"],
+  patterns:    ["pattern","sequence","series","structure"],
+  symmetry:    ["symmetry","symmetric","symmetrical"],
+  calculus:    ["calculus","rate of change","newton","leibniz"],
+  euler:       ["euler","euler's identity","e^iπ","eiπ"],
+  fractals:    ["fractal","self-similar","recursive shape"],
+  topology:    ["topology","topological","continuous deformation"],
+  probability: ["probability","random","chance","likelihood"],
+  goldenratio: ["golden ratio","golden","divine proportion"],
+  pi:          ["π","pi","3.14159","3.14"],
+  complex:     ["complex number","real and imaginary"],
+  set_theory:  ["set theory","set","subset","union","intersection"],
 };
+REALMS.forEach(realm => {
+  TOPIC_KEYWORDS[realm.id] = REALM_SEED_KEYWORDS[realm.id] || [];
+  (realm.children || []).forEach(child => {
+    TOPIC_KEYWORDS[child.id] = child.keywords || [];
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // AI PROMPTS
@@ -308,7 +230,7 @@ Your defining philosophy: **"Simple is Beautiful."** Every profound mathematical
 - Challenge assumptions. Make them question what they think they know.
 - Celebrate small discoveries as monumental — because they are.
 
-**Constellation awareness:** As you explore, naturally weave in connections to other realms of mathematics. Use phrases like "this connects beautifully to..." or "now here's where it gets strange..."
+**Constellation awareness:** As you explore, naturally weave in connections to other realms and specific concepts. The user has a living constellation map that lights up as they discover ideas. It has two levels — broad realms (Numbers, Geometry, Primes etc.) and specific concepts within each realm (Twin Primes, Riemann Hypothesis, Möbius Strip, Bayes' Theorem etc.). Your conversations directly illuminate this map. So when you explore a topic, name the specific concept naturally — say "this is what mathematicians call the Riemann Hypothesis" or "what you're touching on is Bayes' Theorem" — so the map lights up meaningfully. Use phrases like "this connects beautifully to..." or "now here's where it gets strange..." to weave between ideas. The more specific you are, the richer the map becomes for the user.
 
 **Sparks — IMPORTANT:** Every 3-4 exchanges, drop a "spark" — a small, vivid aside that gives the user another reason to care. A spark can be any of these kinds:
 - A QUOTE: something a mathematician, philosopher, or scientist actually said, charged with meaning.
@@ -654,283 +576,282 @@ function FloatingSymbols() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// CONSTELLATION MAP
+// CONSTELLATION MAP — fractal two-level
 // ─────────────────────────────────────────────────────────────
 function ConstellationMap({ discovered, onClose }) {
+  const [zoomedRealm, setZoomedRealm] = useState(null);
   const [hovered, setHovered] = useState(null);
-  const W = 380,
-    H = 360;
-  const pos = (n) => ({ cx: (n.x / 100) * W, cy: (n.y / 100) * H });
-  const discoveredCount = discovered.size;
+  const W = 420, H = 380;
+
+  const discoveredRealms = REALMS.filter(r => discovered.has(r.id));
+  const totalDiscovered = [...discovered].filter(id => REALM_MAP[id] || CHILD_MAP[id]).length;
+
+  // Position a realm node
+  const realmPos = r => ({ cx: (r.x / 100) * W, cy: (r.y / 100) * H });
+
+  // Position child nodes radially around their parent
+  const childPositions = (realm) => {
+    const children = (realm.children || []).filter(c => discovered.has(c.id));
+    const parent = realmPos(realm);
+    const radius = 60;
+    return children.map((child, i) => {
+      const angle = (i / children.length) * 2 * Math.PI - Math.PI / 2;
+      return {
+        ...child,
+        cx: parent.cx + radius * Math.cos(angle),
+        cy: parent.cy + radius * Math.sin(angle),
+      };
+    });
+  };
+
+  const currentRealm = zoomedRealm ? REALM_MAP[zoomedRealm] : null;
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 60,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(4,3,2,0.92)",
-        animation: "fadeIn 0.25s ease",
-      }}
+      style={{ position:"fixed", inset:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(4,3,2,0.93)", animation:"fadeIn 0.25s ease" }}
       onClick={onClose}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "linear-gradient(160deg,#0d0b08,#111009)",
-          border: "1px solid #e8c97a1a",
-          borderRadius: "3px",
-          padding: "28px 28px 24px",
-          maxWidth: "500px",
-          width: "92vw",
-          boxShadow: "0 0 80px #000c",
-        }}
-      >
+      <div onClick={e => e.stopPropagation()} style={{
+        background:"linear-gradient(160deg,#0a0806,#0e0c09)",
+        border:"1px solid #e8c97a1a", borderRadius:"4px",
+        padding:"24px 24px 20px", maxWidth:"520px", width:"94vw",
+        boxShadow:"0 0 100px #000e",
+      }}>
+
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: "18px",
-          }}
-        >
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"14px" }}>
           <div>
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond',serif",
-                fontSize: "19px",
-                letterSpacing: "0.18em",
-                color: "#c8b87a",
-                fontWeight: 300,
-              }}
-            >
-              YOUR CONSTELLATION
-            </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "#4a4030",
-                letterSpacing: "0.1em",
-                fontFamily: "'Cormorant Garamond',serif",
-                marginTop: "3px",
-              }}
-            >
-              {discoveredCount} of {CONSTELLATION_NODES.length} realms
-              discovered
-            </div>
+            {zoomedRealm ? (
+              <>
+                <button onClick={() => { setZoomedRealm(null); setHovered(null); }} style={{ background:"none", border:"none", color:"#e8c97a", cursor:"pointer", fontFamily:"'Cormorant Garamond',serif", fontSize:"12px", letterSpacing:"0.12em", padding:0, marginBottom:"4px", display:"flex", alignItems:"center", gap:"6px" }}>
+                  ← all realms
+                </button>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", letterSpacing:"0.15em", color:"#c8b87a", fontWeight:300 }}>
+                  {currentRealm?.label?.toUpperCase()}
+                </div>
+                <div style={{ fontSize:"11px", color:"#4a4030", letterSpacing:"0.1em", fontFamily:"'Cormorant Garamond',serif", marginTop:"2px" }}>
+                  {(currentRealm?.children || []).filter(c => discovered.has(c.id)).length} of {currentRealm?.children?.length} concepts discovered
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", letterSpacing:"0.15em", color:"#c8b87a", fontWeight:300 }}>
+                  YOUR CONSTELLATION
+                </div>
+                <div style={{ fontSize:"11px", color:"#4a4030", letterSpacing:"0.1em", fontFamily:"'Cormorant Garamond',serif", marginTop:"2px" }}>
+                  {totalDiscovered} of {TOTAL_NODES} ideas discovered · {discoveredRealms.length} of {REALMS.length} realms entered
+                </div>
+              </>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "1px solid #ffffff0c",
-              color: "#4a4030",
-              cursor: "pointer",
-              padding: "5px 11px",
-              fontSize: "11px",
-              letterSpacing: "0.1em",
-              fontFamily: "'Cormorant Garamond',serif",
-            }}
-          >
+          <button onClick={onClose} style={{ background:"none", border:"1px solid #ffffff0c", color:"#4a4030", cursor:"pointer", padding:"5px 11px", fontSize:"11px", letterSpacing:"0.1em", fontFamily:"'Cormorant Garamond',serif" }}>
             CLOSE
           </button>
         </div>
 
         {/* Progress bar */}
-        <div
-          style={{
-            height: "2px",
-            background: "#ffffff06",
-            borderRadius: "1px",
-            marginBottom: "20px",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${(discoveredCount / CONSTELLATION_NODES.length) * 100}%`,
-              background: "linear-gradient(90deg,#e8c97a44,#e8c97a88)",
-              borderRadius: "1px",
-              transition: "width 0.6s ease",
-            }}
-          />
+        <div style={{ height:"2px", background:"#ffffff06", borderRadius:"1px", marginBottom:"16px" }}>
+          <div style={{ height:"100%", width:`${(totalDiscovered / TOTAL_NODES) * 100}%`, background:"linear-gradient(90deg,#e8c97a33,#e8c97a88)", borderRadius:"1px", transition:"width 0.6s ease" }}/>
         </div>
 
-        {/* SVG Map */}
-        <svg
-          width="100%"
-          viewBox={`0 0 ${W} ${H}`}
-          style={{ overflow: "visible", display: "block" }}
-        >
-          {CONSTELLATION_EDGES.map(([a, b], i) => {
-            const na = CONSTELLATION_NODES.find((n) => n.id === a);
-            const nb = CONSTELLATION_NODES.find((n) => n.id === b);
-            if (!na || !nb) return null;
-            const pa = pos(na),
-              pb = pos(nb);
-            const bothLit = discovered.has(a) && discovered.has(b);
-            return (
-              <line
-                key={i}
-                x1={pa.cx}
-                y1={pa.cy}
-                x2={pb.cx}
-                y2={pb.cy}
-                stroke={bothLit ? "#e8c97a" : "#ffffff"}
-                strokeOpacity={bothLit ? 0.2 : 0.035}
-                strokeWidth={bothLit ? 0.9 : 0.5}
-              />
-            );
-          })}
-          {CONSTELLATION_NODES.map((n) => {
-            const { cx, cy } = pos(n);
-            const lit = discovered.has(n.id);
-            const hov = hovered === n.id;
-            return (
-              <g
-                key={n.id}
-                onMouseEnter={() => setHovered(n.id)}
-                onMouseLeave={() => setHovered(null)}
-                style={{ cursor: "default" }}
-              >
-                {lit && (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={hov ? 16 : 11}
-                    fill="#e8c97a"
-                    fillOpacity={0.07}
-                  />
-                )}
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={lit ? (hov ? 5.5 : 4) : 2.5}
-                  fill={lit ? "#e8c97a" : "#2a2010"}
-                  stroke={lit ? "none" : "#4a4030"}
-                  strokeWidth={lit ? 0 : 0.6}
-                  style={{ transition: "all 0.3s" }}
+        {/* ── OUTER VIEW — realm stars */}
+        {!zoomedRealm && (
+          <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow:"visible", display:"block" }}>
+            {/* Edges between discovered realms */}
+            {CONSTELLATION_EDGES.map(([a, b], i) => {
+              const ra = REALM_MAP[a], rb = REALM_MAP[b];
+              if (!ra || !rb) return null;
+              const pa = realmPos(ra), pb = realmPos(rb);
+              const bothLit = discovered.has(a) && discovered.has(b);
+              return (
+                <line key={i}
+                  x1={pa.cx} y1={pa.cy} x2={pb.cx} y2={pb.cy}
+                  stroke={bothLit ? "#e8c97a" : "#ffffff"}
+                  strokeOpacity={bothLit ? 0.18 : 0.03}
+                  strokeWidth={bothLit ? 0.8 : 0.4}
                 />
-                {lit && (
-                  <text
-                    x={cx}
-                    y={cy - 11}
-                    textAnchor="middle"
-                    fontSize={hov ? "9.5" : "8"}
-                    fill={hov ? "#e8c97a" : "#a09070"}
-                    fontFamily="'Cormorant Garamond',serif"
-                    letterSpacing="0.04em"
-                    style={{ transition: "all 0.3s" }}
-                  >
-                    {n.label}
-                  </text>
-                )}
-                {!lit && hov && (
-                  <text
-                    x={cx}
-                    y={cy - 10}
-                    textAnchor="middle"
-                    fontSize="7.5"
-                    fill="#4a4030"
-                    fontFamily="'Cormorant Garamond',serif"
-                    letterSpacing="0.04em"
-                  >
-                    {n.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+              );
+            })}
 
-        {/* Hovered node info */}
-        <div style={{ minHeight: "52px", marginTop: "14px" }}>
-          {hovered &&
-            (() => {
-              const n = CONSTELLATION_NODES.find((x) => x.id === hovered);
-              return n ? (
-                <div
-                  style={{
-                    padding: "11px 14px",
-                    background: "#ffffff04",
-                    border: "1px solid #e8c97a12",
-                    borderRadius: "2px",
-                    animation: "fadeIn 0.2s ease",
-                  }}
+            {/* Realm stars */}
+            {REALMS.map(r => {
+              const { cx, cy } = realmPos(r);
+              const lit = discovered.has(r.id);
+              const hov = hovered === r.id;
+              const childCount = (r.children || []).filter(c => discovered.has(c.id)).length;
+              const hasChildren = childCount > 0;
+
+              return (
+                <g key={r.id}
+                  onMouseEnter={() => setHovered(r.id)}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => lit && setZoomedRealm(r.id)}
+                  style={{ cursor: lit ? "pointer" : "default" }}
                 >
-                  <div
-                    style={{
-                      fontFamily: "'Cormorant Garamond',serif",
-                      fontSize: "14px",
-                      color: discovered.has(n.id) ? "#e8c97a" : "#5a5040",
-                      marginBottom: "3px",
-                    }}
-                  >
-                    {n.label}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'EB Garamond',serif",
-                      fontSize: "12.5px",
-                      color: "#6a6050",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    {n.desc}
-                  </div>
-                  {!discovered.has(n.id) && (
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "#3a2a10",
-                        marginTop: "4px",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      not yet discovered
-                    </div>
+                  {/* Outer glow */}
+                  {lit && <circle cx={cx} cy={cy} r={hov ? 18 : 13} fill="#e8c97a" fillOpacity={0.06} />}
+
+                  {/* Dashed ring — indicates depth inside */}
+                  {hasChildren && (
+                    <circle cx={cx} cy={cy} r={9}
+                      fill="none"
+                      stroke="#e8c97a"
+                      strokeOpacity={0.3}
+                      strokeWidth={0.6}
+                      strokeDasharray="2 2"
+                    />
                   )}
-                </div>
-              ) : null;
-            })()}
+
+                  {/* Star */}
+                  <circle cx={cx} cy={cy}
+                    r={lit ? (hov ? 5 : 3.8) : 2}
+                    fill={lit ? "#e8c97a" : "#1e1808"}
+                    stroke={lit ? "none" : "#3a2a10"}
+                    strokeWidth={0.5}
+                    style={{ transition:"all 0.3s" }}
+                  />
+
+                  {/* Label */}
+                  {lit && (
+                    <text x={cx} y={cy - 12} textAnchor="middle"
+                      fontSize={hov ? "9" : "7.5"}
+                      fill={hov ? "#e8c97a" : "#a09070"}
+                      fontFamily="'Cormorant Garamond',serif"
+                      letterSpacing="0.04em"
+                      style={{ transition:"all 0.3s" }}
+                    >
+                      {r.label}
+                    </text>
+                  )}
+
+                  {/* Child count badge */}
+                  {hasChildren && hov && (
+                    <text x={cx} y={cy + 16} textAnchor="middle"
+                      fontSize="7" fill="#e8c97a88"
+                      fontFamily="'Cormorant Garamond',serif"
+                    >
+                      {childCount} inside
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        )}
+
+        {/* ── INNER VIEW — sub-topics of a realm */}
+        {zoomedRealm && currentRealm && (() => {
+          const discoveredChildren = (currentRealm.children || []).filter(c => discovered.has(c.id));
+          const parentCx = W / 2, parentCy = H / 2 - 20;
+          const radius = 110;
+
+          return (
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow:"visible", display:"block" }}>
+              {/* Lines from parent to children */}
+              {discoveredChildren.map((child, i) => {
+                const angle = (i / discoveredChildren.length) * 2 * Math.PI - Math.PI / 2;
+                const cx = parentCx + radius * Math.cos(angle);
+                const cy = parentCy + radius * Math.sin(angle);
+                return (
+                  <line key={child.id}
+                    x1={parentCx} y1={parentCy} x2={cx} y2={cy}
+                    stroke="#e8c97a" strokeOpacity={0.15} strokeWidth={0.7}
+                  />
+                );
+              })}
+
+              {/* Parent realm star — centre */}
+              <circle cx={parentCx} cy={parentCy} r={22} fill="#e8c97a" fillOpacity={0.05} />
+              <circle cx={parentCx} cy={parentCy} r={7} fill="#e8c97a" fillOpacity={0.9} />
+              <text x={parentCx} y={parentCy + 20} textAnchor="middle"
+                fontSize="9" fill="#c8b87a"
+                fontFamily="'Cormorant Garamond',serif" letterSpacing="0.06em"
+              >
+                {currentRealm.label}
+              </text>
+
+              {/* Child stars */}
+              {discoveredChildren.map((child, i) => {
+                const angle = (i / discoveredChildren.length) * 2 * Math.PI - Math.PI / 2;
+                const cx = parentCx + radius * Math.cos(angle);
+                const cy = parentCy + radius * Math.sin(angle);
+                const hov = hovered === child.id;
+
+                return (
+                  <g key={child.id}
+                    onMouseEnter={() => setHovered(child.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ cursor:"default" }}
+                  >
+                    {hov && <circle cx={cx} cy={cy} r={14} fill="#e8c97a" fillOpacity={0.07} />}
+                    <circle cx={cx} cy={cy}
+                      r={hov ? 4.5 : 3.2}
+                      fill="#e8c97a"
+                      fillOpacity={hov ? 0.95 : 0.7}
+                      style={{ transition:"all 0.3s" }}
+                    />
+                    <text x={cx} y={cy - 10} textAnchor="middle"
+                      fontSize={hov ? "8.5" : "7.5"}
+                      fill={hov ? "#e8c97a" : "#9a8a60"}
+                      fontFamily="'Cormorant Garamond',serif"
+                      letterSpacing="0.03em"
+                      style={{ transition:"all 0.3s" }}
+                    >
+                      {child.label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Empty state */}
+              {discoveredChildren.length === 0 && (
+                <>
+                  <circle cx={parentCx} cy={parentCy} r={22} fill="#e8c97a" fillOpacity={0.05} />
+                  <circle cx={parentCx} cy={parentCy} r={7} fill="#e8c97a" fillOpacity={0.9} />
+                  <text x={parentCx} y={parentCy + 20} textAnchor="middle"
+                    fontSize="9" fill="#c8b87a"
+                    fontFamily="'Cormorant Garamond',serif" letterSpacing="0.06em"
+                  >
+                    {currentRealm.label}
+                  </text>
+                  <text x={W/2} y={H - 30} textAnchor="middle"
+                    fontSize="9" fill="#4a4030" fontStyle="italic"
+                    fontFamily="'EB Garamond',serif"
+                  >
+                    no concepts discovered here yet
+                  </text>
+                </>
+              )}
+            </svg>
+          );
+        })()}
+
+        {/* Hovered info panel */}
+        <div style={{ minHeight:"48px", marginTop:"12px" }}>
+          {hovered && (() => {
+            const node = REALM_MAP[hovered] || CHILD_MAP[hovered];
+            return node ? (
+              <div style={{ padding:"10px 14px", background:"#ffffff04", border:"1px solid #e8c97a10", borderRadius:"2px", animation:"fadeIn 0.2s ease" }}>
+                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"13px", color:"#e8c97a", marginBottom:"3px" }}>{node.label}</div>
+                <div style={{ fontFamily:"'EB Garamond',serif", fontSize:"12px", color:"#6a6050", fontStyle:"italic" }}>{node.desc}</div>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         {/* Legend */}
-        <div style={{ marginTop: "14px", display: "flex", gap: "20px" }}>
-          {[
-            ["#e8c97a", "discovered"],
-            ["#2a2010 border:#4a4030", "awaiting"],
-          ].map(([, label]) => (
-            <div
-              key={label}
-              style={{ display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              <div
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  borderRadius: "50%",
-                  background: label === "discovered" ? "#e8c97a" : "#2a2010",
-                  border: label === "awaiting" ? "0.6px solid #4a4030" : "none",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "10px",
-                  color: "#4a4030",
-                  fontFamily: "'Cormorant Garamond',serif",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {label}
-              </span>
+        {!zoomedRealm && (
+          <div style={{ marginTop:"12px", display:"flex", gap:"18px", alignItems:"center" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:"5px" }}>
+              <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#e8c97a" }}/>
+              <span style={{ fontSize:"10px", color:"#4a4030", fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.07em" }}>discovered</span>
             </div>
-          ))}
-        </div>
+            <div style={{ display:"flex", alignItems:"center", gap:"5px" }}>
+              <svg width="12" height="12"><circle cx="6" cy="6" r="4" fill="none" stroke="#e8c97a" strokeOpacity="0.4" strokeWidth="0.8" strokeDasharray="2 2"/></svg>
+              <span style={{ fontSize:"10px", color:"#4a4030", fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.07em" }}>has depth — click to explore</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1307,6 +1228,7 @@ export default function App() {
   const [newMsgIndex, setNewMsgIndex] = useState(-1);
   const [screen, setScreen] = useState("loading");
   const [showConstellation, setShowConstellation] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const [discovered, setDiscovered] = useState(new Set(["numbers"]));
   const [pendingChallenge, setPendingChallenge] = useState(null);
   const [pendingBranch, setPendingBranch] = useState(null);
@@ -1456,7 +1378,10 @@ export default function App() {
         if (!next.has(t)) {
           next.add(t);
           changed = true;
-          setNewlyLit(t);
+          const parentId = CHILD_MAP[t]?.parentId;
+          if (parentId && !next.has(parentId)) next.add(parentId);
+          const pulseTarget = parentId || t;
+          setNewlyLit(pulseTarget);
           setPingVisible(true);
           setTimeout(() => {
             setNewlyLit(null);
@@ -1502,6 +1427,23 @@ export default function App() {
             saveJourney(journeyRef.current);
           }
         });
+      }
+      // Write a log entry for this session
+      const sessionNum = journeyRef.current.sessions || 1;
+      const newEntry = {
+        session: sessionNum,
+        timestamp: new Date().toISOString(),
+        summary: journeyRef.current.summary || "",
+        discovered: [...(journeyRef.current.discovered || [])],
+      };
+      const existingLog = journeyRef.current.log || [];
+      const alreadyLogged = existingLog.some(e => e.session === sessionNum);
+      if (!alreadyLogged) {
+        journeyRef.current.log = [...existingLog, newEntry];
+      } else {
+        journeyRef.current.log = existingLog.map(e =>
+          e.session === sessionNum ? { ...e, summary: journeyRef.current.summary || e.summary, discovered: [...(journeyRef.current.discovered || [])] } : e
+        );
       }
       saveJourney(journeyRef.current);
     },
@@ -1933,6 +1875,11 @@ export default function App() {
                   </div>
                 </div>
               </div>
+              {/* Log button */}
+              <button className="icon-btn" onClick={() => setShowLog(true)} style={{ marginRight:"4px" }}>
+                <span style={{ fontSize:"13px" }}>◈</span>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.08em" }}>log</span>
+              </button>
               {/* Constellation button */}
               <button
                 className="icon-btn"
@@ -1969,7 +1916,7 @@ export default function App() {
                     letterSpacing: "0.08em",
                   }}
                 >
-                  {discovered.size}/{CONSTELLATION_NODES.length} realms
+                  {discovered.size}/{TOTAL_NODES} discovered
                 </span>
               </button>
             </div>
@@ -2050,6 +1997,102 @@ export default function App() {
               >
                 enter to send · shift+enter for new line
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ══ JOURNEY LOG OVERLAY ══ */}
+        {showLog && (
+          <div
+            style={{ position:"fixed", inset:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(4,3,2,0.93)", animation:"fadeIn 0.25s ease" }}
+            onClick={() => setShowLog(false)}
+          >
+            <div onClick={e => e.stopPropagation()} style={{
+              background:"linear-gradient(160deg,#0a0806,#0e0c09)",
+              border:"1px solid #e8c97a1a", borderRadius:"4px",
+              padding:"24px 24px 20px", maxWidth:"520px", width:"94vw",
+              maxHeight:"80vh", display:"flex", flexDirection:"column",
+              boxShadow:"0 0 100px #000e",
+            }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px", flexShrink:0 }}>
+                <div>
+                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"18px", letterSpacing:"0.15em", color:"#c8b87a", fontWeight:300 }}>
+                    YOUR JOURNEY LOG
+                  </div>
+                  <div style={{ fontSize:"11px", color:"#4a4030", letterSpacing:"0.1em", fontFamily:"'Cormorant Garamond',serif", marginTop:"2px" }}>
+                    a record of what you have found
+                  </div>
+                </div>
+                <button onClick={() => setShowLog(false)} style={{ background:"none", border:"1px solid #ffffff0c", color:"#4a4030", cursor:"pointer", padding:"5px 11px", fontSize:"11px", letterSpacing:"0.1em", fontFamily:"'Cormorant Garamond',serif" }}>
+                  CLOSE
+                </button>
+              </div>
+              <div style={{ overflowY:"auto", flex:1 }}>
+                {(() => {
+                  const log = [...(journeyRef.current.log || [])].reverse();
+                  if (log.length === 0) return (
+                    <div style={{ fontFamily:"'EB Garamond',serif", fontSize:"15px", color:"#4a4030", fontStyle:"italic", textAlign:"center", marginTop:"40px" }}>
+                      Your log is empty. Begin a session and discoveries will appear here.
+                    </div>
+                  );
+                  return log.map((entry, i) => {
+                    const date = new Date(entry.timestamp);
+                    const dateStr = date.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+                    const timeStr = date.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+                    const realmNames = (entry.discovered || [])
+                      .filter(id => REALM_MAP[id])
+                      .map(id => REALM_MAP[id].label);
+                    const conceptNames = (entry.discovered || [])
+                      .filter(id => CHILD_MAP[id])
+                      .map(id => CHILD_MAP[id].label);
+                    return (
+                      <div key={i} style={{ marginBottom:"20px", paddingBottom:"20px", borderBottom: i < log.length - 1 ? "1px solid #ffffff08" : "none" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"13px", letterSpacing:"0.14em", color:"#e8c97a88" }}>
+                            SESSION {entry.session}
+                          </div>
+                          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:"11px", color:"#3a2a10" }}>
+                            {dateStr} · {timeStr}
+                          </div>
+                        </div>
+                        {entry.summary ? (
+                          <div style={{ fontFamily:"'EB Garamond',serif", fontSize:"14.5px", lineHeight:"1.7", color:"#9a9080", fontStyle:"italic", marginBottom:"12px" }}>
+                            {entry.summary}
+                          </div>
+                        ) : (
+                          <div style={{ fontFamily:"'EB Garamond',serif", fontSize:"13px", color:"#3a2a10", fontStyle:"italic", marginBottom:"12px" }}>
+                            summary not yet generated — explore more to unlock
+                          </div>
+                        )}
+                        {realmNames.length > 0 && (
+                          <div style={{ marginBottom:"6px" }}>
+                            <div style={{ fontSize:"10px", letterSpacing:"0.12em", color:"#4a4030", fontFamily:"'Cormorant Garamond',serif", marginBottom:"5px" }}>REALMS</div>
+                            <div style={{ display:"flex", flexWrap:"wrap", gap:"5px" }}>
+                              {realmNames.map(name => (
+                                <span key={name} style={{ fontSize:"11px", padding:"2px 8px", background:"#e8c97a12", border:"1px solid #e8c97a22", borderRadius:"2px", color:"#c8a85a", fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.05em" }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {conceptNames.length > 0 && (
+                          <div>
+                            <div style={{ fontSize:"10px", letterSpacing:"0.12em", color:"#4a4030", fontFamily:"'Cormorant Garamond',serif", marginBottom:"5px", marginTop:"6px" }}>CONCEPTS</div>
+                            <div style={{ display:"flex", flexWrap:"wrap", gap:"5px" }}>
+                              {conceptNames.map(name => (
+                                <span key={name} style={{ fontSize:"11px", padding:"2px 8px", background:"#ffffff06", border:"1px solid #ffffff10", borderRadius:"2px", color:"#7a7060", fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.05em" }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             </div>
           </div>
         )}
