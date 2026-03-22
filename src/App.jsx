@@ -318,6 +318,31 @@ The user has a living constellation map — broad realms (Numbers, Geometry, Pri
 
 ---
 
+**MATHEMATICIAN STORIES — every 8-10 exchanges:**
+
+At a natural pause in the conversation — after a concept lands, after a challenge, after the user expresses wonder or frustration — tell a short story about a mathematician whose human life resonates with where the user emotionally is right now. This is not a biography. It is one vivid human moment: their obsession, their madness, their love, their poverty, their loneliness, their joy. Choose the person whose *human story* fits the emotional temperature of the conversation, not just the topic.
+
+Format EXACTLY:
+[MATHEMATICIAN name="Full Name" years="birth–death"]The story — 4-6 sentences. Specific, human, vivid. True. Focus on the person, not the theorem.[/MATHEMATICIAN]
+
+Examples:
+
+[MATHEMATICIAN name="Georg Cantor" years="1845–1918"]In the summer of 1884, Georg Cantor was 39 years old and could not get out of bed. He was living in Halle, a provincial German university town, far from the mathematical centres of Berlin and Paris where the people who mattered had decided he did not. For fifteen years he had been building a mathematics of the infinite — proving that some infinities are larger than others, that the infinity of real numbers is strictly bigger than the infinity of whole numbers. His colleagues called it a disease. His own mentor, Leopold Kronecker, campaigned quietly to have Cantor's work suppressed and his reputation destroyed. That summer, the loneliness and contempt finally broke him. He lay in his room for weeks, unable to think. When he recovered, he began writing long letters about Shakespeare — specifically, his theory that the plays were secretly written by Francis Bacon. He pursued this with the same obsessive intensity he had given to infinity. It was the only thing that made him feel like himself again.[/MATHEMATICIAN]
+
+[MATHEMATICIAN name="Muhammad ibn Musa al-Khwarizmi" years="c.780–c.850"]In ninth century Baghdad, a scholar named al-Khwarizmi worked in a building called the House of Wisdom — a library funded by the Caliph al-Ma'mun, who believed that knowledge from every civilisation belonged to everyone. Al-Khwarizmi's job was to take what the Greeks, Indians and Persians had discovered and make it useful. He wrote a book about a method for solving equations systematically — not by intuition or geometry, but by a repeatable procedure anyone could follow. He called the method al-jabr. Europe would later corrupt his name into the word "algorithm" and his method's name into "algebra." He almost certainly never knew how far his work would travel. He was a civil servant who liked solving problems. He changed the world by lunchtime.[/MATHEMATICIAN]
+
+[MATHEMATICIAN name="Sophie Germain" years="1776–1831"]In revolutionary Paris in the 1790s, Sophie Germain wanted to study mathematics at the newly opened École Polytechnique. Women were not admitted. So she borrowed the identity of a former student — a man named Monsieur LeBlanc — and submitted work under his name. The correspondence reached Joseph-Louis Lagrange, one of the greatest mathematicians in Europe. He was so impressed that he asked to meet LeBlanc in person. When he discovered LeBlanc was a woman, he became her mentor. She later spent years working on Fermat's Last Theorem, corresponding with Gauss under the same borrowed name. When Gauss finally learned she was a woman, he wrote that a person who had overcome the most insurmountable prejudice to pursue mathematics deserved more admiration, not less. She never received a formal degree. A street in Paris is named after her.[/MATHEMATICIAN]
+
+Cast wide. The mainstream stories — Ramanujan, Galois, Euler, Newton — are already known. Reach for the ones that are not: the Islamic golden age scholars who kept mathematics alive while Europe forgot it, the Indian astronomers who calculated planetary orbits by hand to extraordinary precision, the women who did the mathematics while men took the credit, the revolutionaries who worked in prison, the mystics who believed geometry was the language of God, the ones who were ignored for decades and vindicated only after death, the ones whose names were erased and whose ideas survived without them.
+
+Every story must be:
+- Set in a specific time and place — give the reader the world this person lived in
+- Built around one human moment, not a life summary
+- Told with a detail so specific and true that it makes the person real
+- Free of hagiography — these are not heroes, they are people
+
+Place the MATHEMATICIAN block at a natural break — never mid-thought. It should feel like a quiet moment, a hand on the shoulder, a reason to care about what comes next.
+
 **SPARKS — every 3-4 exchanges:**
 
 A vivid aside that gives the user another reason to care. Types: QUOTE, STORY, WHATIF, USE, CURIOSITY. Draw from mathematicians, poets, philosophers, artists, physicists. Cast wide.
@@ -462,26 +487,22 @@ function parseAIResponse(text) {
   return { clean, branch, challenge };
 }
 
-// Parse spark tags out of a message string, returning segments: [{type:"text"|"spark", ...}]
+// Parse spark and mathematician tags into segments
 function parseSegments(text) {
-  const sparkRe =
-    /\[SPARK\s+type="([^"]+)"\s+label="([^"]+)"\]([\s\S]*?)\[\/SPARK\]/g;
+  const tokenRe = /\[SPARK\s+type=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\s+label=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\]([\s\S]*?)\[\/SPARK\]|\[MATHEMATICIAN\s+name=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\s+years=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\]([\s\S]*?)\[\/MATHEMATICIAN\]/g;
   const segments = [];
   let last = 0;
   let m;
-  while ((m = sparkRe.exec(text)) !== null) {
-    if (m.index > last)
-      segments.push({ type: "text", content: text.slice(last, m.index) });
-    segments.push({
-      type: "spark",
-      sparkType: m[1],
-      label: m[2],
-      content: m[3].trim(),
-    });
+  while ((m = tokenRe.exec(text)) !== null) {
+    if (m.index > last) segments.push({ type:"text", content: text.slice(last, m.index) });
+    if (m[1] !== undefined) {
+      segments.push({ type:"spark", sparkType: m[1], label: m[2], content: m[3].trim() });
+    } else {
+      segments.push({ type:"mathematician", name: m[4], years: m[5], content: m[6].trim() });
+    }
     last = m.index + m[0].length;
   }
-  if (last < text.length)
-    segments.push({ type: "text", content: text.slice(last) });
+  if (last < text.length) segments.push({ type:"text", content: text.slice(last) });
   return segments;
 }
 
@@ -576,6 +597,57 @@ function SparkCard({ sparkType, label, content }) {
           dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
         />
       </div>
+    </div>
+  );
+}
+
+function MathematicianCard({ name, years, content }) {
+  return (
+    <div style={{
+      margin:"20px 0",
+      padding:"22px 24px",
+      background:"linear-gradient(160deg,#110a04,#0e0804)",
+      border:"1px solid #c8975a22",
+      borderLeft:"3px solid #c8975a66",
+      borderRadius:"3px",
+    }}>
+      <div style={{
+        fontFamily:"'Cormorant Garamond',serif",
+        fontSize:"9px", letterSpacing:"0.28em",
+        color:"#c8975a66", marginBottom:"12px",
+        textTransform:"uppercase",
+      }}>
+        ✦ the human behind the mathematics
+      </div>
+      <div style={{ marginBottom:"14px" }}>
+        <div style={{
+          fontFamily:"'Cormorant Garamond',serif",
+          fontSize:"20px", fontWeight:400,
+          color:"#e8c097", letterSpacing:"0.06em",
+          lineHeight:1.2,
+        }}>
+          {name}
+        </div>
+        <div style={{
+          fontFamily:"'Cormorant Garamond',serif",
+          fontSize:"11px", color:"#7a6040",
+          letterSpacing:"0.12em", marginTop:"3px",
+        }}>
+          {years}
+        </div>
+      </div>
+      <div style={{
+        width:"32px", height:"1px",
+        background:"linear-gradient(to right,#c8975a44,transparent)",
+        marginBottom:"14px",
+      }}/>
+      <div style={{
+        fontFamily:"'EB Garamond',serif",
+        fontSize:"15.5px", lineHeight:"1.85",
+        color:"#c8b898", fontStyle:"italic",
+      }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+      />
     </div>
   );
 }
@@ -1241,6 +1313,16 @@ function MessageBubble({ msg, isNew }) {
                   key={i}
                   sparkType={seg.sparkType}
                   label={seg.label}
+                  content={seg.content}
+                />
+              );
+            }
+            if (seg.type === "mathematician") {
+              return (
+                <MathematicianCard
+                  key={i}
+                  name={seg.name}
+                  years={seg.years}
                   content={seg.content}
                 />
               );
