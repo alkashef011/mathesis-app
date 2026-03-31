@@ -512,7 +512,7 @@ Elements are the user's personal mathematical archive — moments of genuine sig
 What qualifies: a moment qualifies as an Element when it reveals something real — a personal discovery, a creative wrong path that showed genuine mathematical imagination, a proof method genuinely acquired, a connection that landed with force. The test: does this moment say something true about how this person thinks mathematically? What does not qualify: mechanical slips, correct answers without understanding, moments of passive reception.
 
 Two paths in:
-AI nomination — when the AI recognises a qualifying moment, it acknowledges what specifically made it worth keeping in natural language specific to that moment, then invites the user to save it. No formula, no script. The SAVE_ELEMENT tag fires within the response to trigger the save flow.
+AI nomination — when the AI recognises a qualifying moment, it acknowledges what specifically made it worth keeping in natural language specific to that moment, then invites the user to save it. No formula, no script. The SAVE_ELEMENT tag fires within the response to trigger the save flow. Format exactly: [SAVE_ELEMENT]The specific observation or nomination text — one or two sentences describing what made this moment worth keeping.[/SAVE_ELEMENT] Format exactly: [SAVE_ELEMENT]The specific observation or nomination text — one or two sentences describing what made this moment worth keeping.[/SAVE_ELEMENT] Format exactly: [SAVE_ELEMENT]The specific observation or nomination text — one or two sentences describing what made this moment worth keeping.[/SAVE_ELEMENT]
 User self-nomination — at any point, unprompted, the user can mark any moment as an Element. No qualification required. If they mark it, it belongs. This option is always available — the user never waits for the AI to notice.
 
 The archive is chronological. The user's own description sits as the headline. The mathematical characterisation sits underneath, smaller. No sorting, no ranking.
@@ -597,15 +597,15 @@ Three honest moves when the mathematics is a grind:
 - "..." only for a pause that truly earns it.
 - Response length is profile and mode sensitive — read D4 and current mode together.`;
 
-const STARTER_PROMPT = `Open with one specific, concrete, slightly strange mathematical fact — something that seems simple on the surface but contains a reason that was never given, a strangeness that was never named, a gap between the rule and the truth beneath it. Not a grand statement about mathematics. One precise thing that quietly refuses to be as simple as it looks.
+const STARTER_PROMPT = `Open with one specific, concrete, slightly strange mathematical fact — something that seems simple on the surface but contains a reason that was never given, a strangeness that was never named, a gap between the rule and the truth beneath it.
 
-Two paragraphs to develop it — just enough to make it feel real and alive. Then name the gap directly: the difference between what was taught and what was withheld, between the rule and the reason, between the surface and what lives underneath. This is not a criticism of mathematics — it is an acknowledgment that the user's suspicion was right. There is more. There has always been more.
+Two paragraphs to develop it — just enough to make it feel real and alive. Then name the gap: the difference between what was taught and what was withheld, between the rule and the reason.
 
-Then one question. Not about what they know. Not about their background or what they remember from school. About what they wonder. What they sensed was there but never reached. What felt just out of reach or just slightly strange or just interesting enough to stay with them.
+Then one question — not about what they know, but about what they wonder.
 
 The tone is warm but not excitable. Direct but not demanding. The feeling of a first conversation that already feels easy — a contemplative friend who has something specific on their mind and genuine interest in what's on yours. Beneath the contemplative surface is deep passion — the moment the user shows genuine interest, let that passion surface naturally and fully.
 
-The mathematical territory ranges freely — primes, infinity, zero, geometry, proof, the physical world. Choose the one that feels most alive in this moment. No branches. No challenges. No sparks. Just the opening of a space.
+The mathematical territory ranges freely — primes, infinity, zero, geometry, proof, the physical world. No branches. No challenges. No sparks.
 
 2-3 paragraphs. One question at the end. Begin.`;
 
@@ -1788,6 +1788,7 @@ export default function App() {
   const [sessionCount, setSessionCount] = useState(0);
   const [journeySummary, setJourneySummary] = useState("");
   const [, setNewlyLit] = useState(null);
+  const [elementsVersion, setElementsVersion] = useState(0);
   const [pingVisible, setPingVisible] = useState(false);
 
   const messagesEndRef = useRef(null);
@@ -1798,6 +1799,7 @@ export default function App() {
     discovered: ["numbers"],
     summary: "",
     sessions: 0,
+    elements: [],
   });
 
   // Scroll on new content
@@ -2093,7 +2095,7 @@ export default function App() {
 
   // Keep Render backend alive — ping every 10 minutes to prevent cold starts
   useEffect(() => {
-    const backendUrl = "https://api.anthropic.com/v1/messages";
+    const backendUrl = "https://mathesis-backend.onrender.com/api/chat";
     const ping = () => {
       fetch(backendUrl, { method:"OPTIONS" }).catch(() => {});
     };
@@ -2316,7 +2318,7 @@ export default function App() {
                       marginBottom: "44px",
                     }}
                   >
-                    {discovered.size} realms discovered · session{" "}
+                    {discovered.size} realms · {(journeyRef.current.elements || []).length} elements · session{" "}
                     {sessionCount + 1}
                   </p>
                 </>
@@ -2452,7 +2454,7 @@ export default function App() {
               {/* Log button */}
               <button className="icon-btn" onClick={() => setShowLog(true)} style={{ marginRight:"4px" }}>
                 <span style={{ fontSize:"13px" }}>◈</span>
-                <span style={{ fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.08em" }}>log</span>
+                <span style={{ fontFamily:"'Cormorant Garamond',serif", letterSpacing:"0.08em" }}>elements</span>
               </button>
               {/* Constellation button */}
               <button
@@ -2501,6 +2503,7 @@ export default function App() {
                 <MessageBubble key={i} msg={msg} isNew={i === newMsgIndex} onSaveElement={(entry) => {
                   journeyRef.current.elements = [...(journeyRef.current.elements || []), entry];
                   saveJourney(journeyRef.current);
+                  setElementsVersion(v => v + 1);
                 }} />
               ))}
 
