@@ -24,12 +24,15 @@ app.post("/api/chat", async (req, res) => {
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      system,
+      max_tokens: 1500,
+      system: system ? [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] : undefined,
       messages,
     });
 
     const text = response.content.map((block) => block.text || "").join("");
+
+    const usage = response.usage;
+    console.log(`Tokens — input: ${usage.input_tokens}, output: ${usage.output_tokens}, cache_read: ${usage.cache_read_input_tokens || 0}, cache_write: ${usage.cache_creation_input_tokens || 0}`);
 
     res.json({ text });
   } catch (error) {
