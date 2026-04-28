@@ -239,6 +239,7 @@ const OPENERS = {
 };
 
 const OPENER_LIST = ["infinity", "equals", "river"];
+if (typeof window !== 'undefined') window.__MATHESIS_OPENERS__ = OPENERS;
 
 // ─────────────────────────────────────────────────────────────
 // SYSTEM PROMPT
@@ -283,6 +284,7 @@ Mathematician stories: [MATHEMATICIAN name="Full Name" years="birth-death"]4-6 s
 Branches: [BRANCH: "Path A" | "Path B"]
 Challenges: [CHALLENGE: "specific beautiful puzzle"]
 Elements: [SAVE_ELEMENT]What made this moment worth keeping.[/SAVE_ELEMENT]
+Reply chips: End every response with [REPLIES: "short reply 1" | "short reply 2" | "short reply 3"] — three natural things the student might say next. Keep each under 8 words. Make them feel like genuine reactions, not prompts. Never include [REPLIES] if a [BRANCH] is present in the same response.
 Bold only at a genuine moment of revelation. Rarely. Fractions as a/b, powers as x², roots as √x, pi as π. "..." only when the pause truly earns it. "Unfortunately" and "however" banned at a wall moment.`;
 
 function buildSystemPrompt(mode, profile, activeOpener) {
@@ -351,15 +353,25 @@ function detectTopics(text) {
 
 function parseAIResponse(text) {
   let clean = text.trim();
-  let branch = null, challenge = null;
+  let branch = null, challenge = null, replies = null;
   const branchMatch = clean.match(/\[BRANCH:\s*"([^"]+)"\s*\|\s*"([^"]+)"\]/);
   if (branchMatch) { branch = { a: branchMatch[1], b: branchMatch[2] }; clean = clean.replace(branchMatch[0], "").trim(); }
   const challengeMatch = clean.match(/\[CHALLENGE:\s*"([^"]+)"\]/);
   if (challengeMatch) { challenge = challengeMatch[1]; clean = clean.replace(challengeMatch[0], "").trim(); }
-  return { clean, branch, challenge };
+  const repliesMatch = clean.match(/\[REPLIES:\s*"([^"]+)"\s*\|\s*"([^"]+)"(?:\s*\|\s*"([^"]+)")?\]/);
+  if (repliesMatch && !branch) {
+    replies = [repliesMatch[1], repliesMatch[2], repliesMatch[3]].filter(Boolean);
+    clean = clean.replace(repliesMatch[0], "").trim();
+  }
+  return { clean, branch, challenge, replies };
 }
 
 function parseSegments(text) {
+  // Handle DYK messages stored with special prefix
+  if (text && text.startsWith("__dyk__")) {
+    const parts = text.replace("__dyk__", "").split("__");
+    return [{ type:"dyk", openerId: parts[0], isWild: parts[1] === "wild" }];
+  }
   const tokenRe = /\[SAVE_ELEMENT\]([\s\S]*?)\[\/SAVE_ELEMENT\]|\[SPARK\s+type=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\s+label=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\]([\s\S]*?)(?:\[\/SPARK\]|(?=\[SPARK|\[MATHEMATICIAN|\[SAVE_ELEMENT|$))|\[MATHEMATICIAN\s+name=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\s+years=[""\u201C\u201D]([^""\u201C\u201D]+)[""\u201C\u201D]\]([\s\S]*?)(?:\[\/MATHEMATICIAN\]|(?=\[SPARK|\[MATHEMATICIAN|\[SAVE_ELEMENT|$))/g;
   const segments = [];
   let last = 0, m;
@@ -784,337 +796,6 @@ function ProfileForm({ userName, onComplete }) {
 // ─────────────────────────────────────────────────────────────
 // DID YOU KNOW CARD
 // ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// FORTUNE TELLER + DYK CARD — complete first experience
-// ─────────────────────────────────────────────────────────────
-
-// Card back aged paper pattern — SVG crosshatch
-const CARD_BACK_PATTERN = `
-  repeating-linear-gradient(
-    45deg,
-    rgba(139,110,60,0.08) 0px,
-    rgba(139,110,60,0.08) 1px,
-    transparent 1px,
-    transparent 8px
-  ),
-  repeating-linear-gradient(
-    -45deg,
-    rgba(139,110,60,0.06) 0px,
-    rgba(139,110,60,0.06) 1px,
-    transparent 1px,
-    transparent 8px
-  )
-`;
-
-// Slight rotation for each card — imperfect human placement
-const CARD_ROTATIONS = [-1.8, 1.2, -0.8, 2.1];
-
-// Card configs including wild card
-const FORTUNE_CARDS = [
-  { id: "infinity",  label: "Sizes of Infinity",  symbol: "∞" },
-  { id: "equals",    label: "The Equals Sign",     symbol: "=" },
-  { id: "wild",      label: "Wild Card",           symbol: "?" },
-  { id: "river",     label: "Rivers and Pi",       symbol: "π" },
-];
-
-function FortuneTeller({ onChoose }) {
-  const [hoveredIdx, setHoveredIdx] = useState(null);
-  const [flippedIdx, setFlippedIdx] = useState(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [phase, setPhase] = useState("selection"); // selection | flipping | expanding | done
-
-  const handleChoose = (idx) => {
-    if (isAnimating || flippedIdx !== null) return;
-    setIsAnimating(true);
-    setFlippedIdx(idx);
-    setPhase("flipping");
-
-    // After flip completes, slide others away
-    setTimeout(() => {
-      setPhase("expanding");
-    }, 700);
-
-    // After expansion, call onChoose
-    setTimeout(() => {
-      setPhase("done");
-      const card = FORTUNE_CARDS[idx];
-      const openerId = card.id === "wild"
-        ? ["infinity", "equals", "river"][Math.floor(Math.random() * 3)]
-        : card.id;
-      onChoose(openerId, card.id === "wild");
-    }, 1400);
-  };
-
-  return (
-    <div style={{ marginBottom:"40px" }}>
-      {/* Invitation line */}
-      <p style={{
-        fontFamily:"var(--font-display)",
-        fontSize:"18px",
-        fontWeight:400,
-        color:"var(--text-2)",
-        textAlign:"center",
-        marginBottom:"40px",
-        fontStyle:"italic",
-        opacity: phase === "selection" ? 1 : 0,
-        transition:"opacity 0.3s",
-        lineHeight:1.5,
-      }}>
-        Every journey begins with a door.<br/>Choose yours.
-      </p>
-
-      {/* 2x2 grid */}
-      <div style={{
-        display:"grid",
-        gridTemplateColumns:"1fr 1fr",
-        gap:"20px",
-        maxWidth:"480px",
-        margin:"0 auto",
-        perspective:"1000px",
-      }}>
-        {FORTUNE_CARDS.map((card, idx) => {
-          const isFlipped = flippedIdx === idx;
-          const isOther = flippedIdx !== null && flippedIdx !== idx;
-          const rot = CARD_ROTATIONS[idx];
-
-          // Slide direction for unchosen cards
-          const slideX = isOther ? (idx % 2 === 0 ? "-120%" : "120%") : "0";
-          const slideY = isOther ? (idx < 2 ? "-30px" : "30px") : "0";
-
-          return (
-            <div
-              key={card.id}
-              onClick={() => handleChoose(idx)}
-              onMouseEnter={() => !isAnimating && setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{
-                aspectRatio:"1",
-                position:"relative",
-                transform: isOther
-                  ? `translateX(${slideX}) translateY(${slideY}) scale(0.85) rotate(${rot}deg)`
-                  : isFlipped
-                    ? `scale(1.05) rotate(0deg)`
-                    : hoveredIdx === idx && !isAnimating
-                      ? `translateY(-8px) rotate(${rot}deg) scale(1.03)`
-                      : `rotate(${rot}deg)`,
-                opacity: isOther ? 0 : 1,
-                transition: isOther
-                  ? "all 0.5s cubic-bezier(0.4,0,0.2,1)"
-                  : isFlipped
-                    ? "transform 0.4s cubic-bezier(0.4,0,0.2,1)"
-                    : "transform 0.25s ease, opacity 0.3s",
-                cursor: isAnimating ? "default" : "pointer",
-                transformStyle:"preserve-3d",
-              }}
-            >
-              {/* Card inner — flips on click */}
-              <div style={{
-                width:"100%",
-                height:"100%",
-                position:"relative",
-                transformStyle:"preserve-3d",
-                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                transition:"transform 0.6s cubic-bezier(0.4,0,0.2,1)",
-              }}>
-
-                {/* BACK FACE */}
-                <div style={{
-                  position:"absolute",
-                  inset:0,
-                  backfaceVisibility:"hidden",
-                  WebkitBackfaceVisibility:"hidden",
-                  background:`#f0e8d0`,
-                  backgroundImage:CARD_BACK_PATTERN,
-                  border:"2px solid rgba(139,110,60,0.3)",
-                  borderRadius:"6px",
-                  boxShadow: hoveredIdx === idx && !isAnimating
-                    ? "0 12px 40px rgba(0,0,0,0.7), 0 4px 12px rgba(0,0,0,0.4)"
-                    : "0 6px 20px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)",
-                  display:"flex",
-                  alignItems:"center",
-                  justifyContent:"center",
-                  transition:"box-shadow 0.25s",
-                }}>
-                  {/* Center ornament */}
-                  <div style={{
-                    width:"60%",
-                    height:"60%",
-                    border:"1px solid rgba(139,110,60,0.2)",
-                    borderRadius:"4px",
-                    display:"flex",
-                    alignItems:"center",
-                    justifyContent:"center",
-                    background:"rgba(139,110,60,0.03)",
-                  }}>
-                    <div style={{
-                      width:"40%",
-                      height:"40%",
-                      border:"1px solid rgba(139,110,60,0.15)",
-                      borderRadius:"2px",
-                      background:"rgba(139,110,60,0.04)",
-                    }} />
-                  </div>
-                  {/* Corner ornaments */}
-                  {["topleft","topright","bottomleft","bottomright"].map(pos => (
-                    <div key={pos} style={{
-                      position:"absolute",
-                      top: pos.includes("top") ? "8px" : undefined,
-                      bottom: pos.includes("bottom") ? "8px" : undefined,
-                      left: pos.includes("left") ? "8px" : undefined,
-                      right: pos.includes("right") ? "8px" : undefined,
-                      width:"10px",
-                      height:"10px",
-                      borderTop: pos.includes("top") ? "1px solid rgba(139,110,60,0.25)" : undefined,
-                      borderBottom: pos.includes("bottom") ? "1px solid rgba(139,110,60,0.25)" : undefined,
-                      borderLeft: pos.includes("left") ? "1px solid rgba(139,110,60,0.25)" : undefined,
-                      borderRight: pos.includes("right") ? "1px solid rgba(139,110,60,0.25)" : undefined,
-                    }} />
-                  ))}
-                </div>
-
-                {/* FRONT FACE */}
-                <div style={{
-                  position:"absolute",
-                  inset:0,
-                  backfaceVisibility:"hidden",
-                  WebkitBackfaceVisibility:"hidden",
-                  transform:"rotateY(180deg)",
-                  background:"#f8f4e8",
-                  backgroundImage:CARD_BACK_PATTERN,
-                  border:"2px solid rgba(139,110,60,0.4)",
-                  borderRadius:"6px",
-                  boxShadow:"0 12px 40px rgba(0,0,0,0.7)",
-                  display:"flex",
-                  flexDirection:"column",
-                  alignItems:"center",
-                  justifyContent:"center",
-                  padding:"16px",
-                  gap:"12px",
-                }}>
-                  {/* Symbol */}
-                  <div style={{
-                    fontFamily:"Georgia,serif",
-                    fontSize:"32px",
-                    color:"#5a4010",
-                    opacity:0.6,
-                    lineHeight:1,
-                  }}>{card.symbol}</div>
-                  {/* Divider */}
-                  <div style={{
-                    width:"40px",
-                    height:"1px",
-                    background:"rgba(139,110,60,0.3)",
-                  }} />
-                  {/* Title */}
-                  <div style={{
-                    fontFamily:"var(--font-display)",
-                    fontSize:"14px",
-                    fontWeight:500,
-                    color:"#2a1a08",
-                    textAlign:"center",
-                    lineHeight:1.3,
-                    letterSpacing:"0.02em",
-                  }}>{card.label}</div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Subtle hint */}
-      {phase === "selection" && (
-        <p style={{
-          fontFamily:"var(--font-ui)",
-          fontSize:"11px",
-          color:"var(--text-3)",
-          textAlign:"center",
-          marginTop:"28px",
-          letterSpacing:"0.08em",
-          opacity:0.6,
-        }}>flip a card to begin</p>
-      )}
-    </div>
-  );
-}
-
-function DidYouKnowCard({ opener, isWild, onReply, exchangeCount }) {
-  const data = OPENERS[opener];
-  const showReplies = exchangeCount === 0;
-
-  return (
-    <div style={{ animation:"fadeUp 0.6s ease" }}>
-
-      {/* Bridge — different for wild card */}
-      <p style={{
-        fontFamily:"var(--font-ui)",
-        fontSize:"14px",
-        color:"var(--text-3)",
-        marginBottom:"24px",
-        lineHeight:1.8,
-        letterSpacing:"0.01em",
-      }}>
-        {isWild
-          ? "You chose the unknown path. Here's where it leads."
-          : data.bridge}
-      </p>
-
-      {/* Physical notebook card — expands from fortune teller */}
-      <div style={{ position:"relative", marginBottom:"24px" }}>
-        {/* Depth shadow layers */}
-        <div style={{ position:"absolute", top:"6px", left:"6px", right:"-6px", bottom:"-6px", background:"rgba(201,168,76,0.06)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.08)" }} />
-        <div style={{ position:"absolute", top:"3px", left:"3px", right:"-3px", bottom:"-3px", background:"rgba(201,168,76,0.04)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.06)" }} />
-
-        {/* Main card — same aged paper as fortune teller backs */}
-        <div style={{
-          position:"relative",
-          background:"#f8f4e8",
-          borderRadius:"3px",
-          padding:"32px 32px 28px 56px",
-          boxShadow:"0 2px 12px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4)",
-          overflow:"hidden",
-        }}>
-          {/* Ruled lines */}
-          <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(transparent, transparent 31px, rgba(160,185,210,0.18) 31px, rgba(160,185,210,0.18) 32px)", pointerEvents:"none" }} />
-          {/* Red margin */}
-          <div style={{ position:"absolute", left:"44px", top:0, bottom:0, width:"1px", background:"rgba(200,80,80,0.2)", pointerEvents:"none" }} />
-          {/* Binding holes */}
-          <div style={{ position:"absolute", left:"14px", top:"20%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
-          <div style={{ position:"absolute", left:"14px", top:"50%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
-          <div style={{ position:"absolute", left:"14px", top:"80%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
-          {/* Aged paper pattern — same crosshatch as card backs for continuity */}
-          <div style={{ position:"absolute", inset:0, backgroundImage:CARD_BACK_PATTERN, opacity:0.3, pointerEvents:"none" }} />
-
-          <div style={{ position:"relative" }}>
-            <div style={{ fontFamily:"var(--font-ui)", fontSize:"9px", fontWeight:700, letterSpacing:"0.24em", textTransform:"uppercase", color:"#8a7840", marginBottom:"14px", opacity:0.7 }}>✦ Did you know</div>
-            <p style={{ fontFamily:"Georgia, serif", fontSize:"16px", lineHeight:"2.0", color:"#1c1810", whiteSpace:"pre-line", fontWeight:400 }}>{data.card}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Closing line */}
-      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", fontStyle:"italic", color:"var(--text-2)", marginBottom:"24px", lineHeight:1.8 }}>{data.closing}</p>
-
-      {/* Reply chips — only before first reply */}
-      {showReplies && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", marginBottom:"16px" }}>
-          {data.replies.map((r, i) => (
-            <button key={i} onClick={() => onReply(r)}
-              style={{ padding:"9px 16px", background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:"20px", color:"var(--text-2)", fontFamily:"var(--font-ui)", fontSize:"13px", cursor:"pointer", transition:"all 0.2s", lineHeight:1.3 }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(201,168,76,0.3)";e.currentTarget.style.color="var(--text-1)";e.currentTarget.style.background="var(--bg-hover)";}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text-2)";e.currentTarget.style.background="var(--bg-card)";}}
-            >{r}</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ─────────────────────────────────────────────────────────────
-// CONSTELLATION MAP
-// ─────────────────────────────────────────────────────────────
 function ConstellationMap({ discovered, onClose }) {
   const [zoomedRealm, setZoomedRealm] = useState(null);
   const [hovered, setHovered] = useState(null);
@@ -1289,10 +970,371 @@ function TypingIndicator({ phrase }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+// SHARE EXCHANGE PANEL
+// ─────────────────────────────────────────────────────────────
+function SharePanel({ messages, onClose }) {
+  const [checked, setChecked] = useState({});
+  const [copied, setCopied] = useState(false);
+
+  // Filter out DYK system messages for display
+  const displayMessages = messages.filter(m => m.content && !m.content.startsWith("__sys__"));
+  const checkedCount = Object.values(checked).filter(Boolean).length;
+
+  const toggleAll = () => {
+    if (checkedCount === displayMessages.length) {
+      setChecked({});
+    } else {
+      const all = {};
+      displayMessages.forEach((_, i) => { all[i] = true; });
+      setChecked(all);
+    }
+  };
+
+  const handleCopy = () => {
+    const selected = displayMessages.filter((_, i) => checked[i]);
+    if (!selected.length) return;
+    const date = new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" });
+    const lines = [
+      "─────────────────────────────────────────",
+      `MATHESIS  ·  Exchange  ·  ${date}`,
+      "─────────────────────────────────────────",
+      "",
+    ];
+    selected.forEach(msg => {
+      const speaker = msg.role === "user" ? "YOU" : "MATHESIS";
+      // Clean content — strip tags and DYK prefix
+      let text = (msg.content || "");
+      if (text.startsWith("__dyk__")) {
+        const openerId = text.replace("__dyk__","").split("__")[0];
+        const opener = window.__MATHESIS_OPENERS__ && window.__MATHESIS_OPENERS__[openerId];
+        text = opener ? opener.card : "[Opening card]";
+      }
+      text = text
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/\[SPARK[^\]]*\][\s\S]*?\[\/SPARK\]/g, "")
+        .replace(/\[MATHEMATICIAN[^\]]*\][\s\S]*?\[\/MATHEMATICIAN\]/g, "")
+        .replace(/\[SAVE_ELEMENT\][\s\S]*?\[\/SAVE_ELEMENT\]/g, "")
+        .replace(/\[BRANCH:[^\]]*\]/g, "")
+        .replace(/\[CHALLENGE:[^\]]*\]/g, "")
+        .trim();
+      if (text) { lines.push(speaker); lines.push(text); lines.push(""); }
+    });
+    lines.push("─────────────────────────────────────────");
+    lines.push("Shared from mathesis.in");
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => { setCopied(false); onClose(); }, 1800);
+    });
+  };
+
+  const getPreview = (msg) => {
+    let text = msg.content || "";
+    if (text.startsWith("__dyk__")) return "✦ Opening card";
+    if (text.startsWith("__sys__")) return null;
+    text = text.replace(/\[.*?\]/g, "").replace(/\*\*(.*?)\*\*/g, "$1").trim();
+    return text.length > 80 ? text.slice(0, 80) + "..." : text;
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:60, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(12,12,14,0.92)", backdropFilter:"blur(6px)", animation:"fadeIn 0.2s ease" }}
+      onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="card"
+        style={{ padding:"28px 28px 20px", maxWidth:"540px", width:"94vw", maxHeight:"80vh", display:"flex", flexDirection:"column", boxShadow:"var(--shadow-lg)" }}>
+
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"20px", flexShrink:0 }}>
+          <div>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:"18px", fontWeight:400, color:"var(--text-1)", letterSpacing:"0.04em" }}>Share exchange</div>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:"12px", color:"var(--text-3)", marginTop:"3px" }}>
+              Select messages to copy as readable text
+            </div>
+          </div>
+          <button className="btn-ghost" onClick={onClose}>Close</button>
+        </div>
+
+        {/* Select all toggle */}
+        <div style={{ marginBottom:"12px", flexShrink:0 }}>
+          <button onClick={toggleAll} className="btn-ghost" style={{ fontSize:"11px" }}>
+            {checkedCount === displayMessages.length ? "Deselect all" : "Select all"}
+          </button>
+          {checkedCount > 0 && (
+            <span style={{ fontFamily:"var(--font-ui)", fontSize:"12px", color:"var(--text-3)", marginLeft:"12px" }}>
+              {checkedCount} message{checkedCount !== 1 ? "s" : ""} selected
+            </span>
+          )}
+        </div>
+
+        {/* Message list */}
+        <div style={{ overflowY:"auto", flex:1, marginBottom:"16px" }}>
+          {displayMessages.map((msg, i) => {
+            const preview = getPreview(msg);
+            if (!preview) return null;
+            const isUser = msg.role === "user";
+            return (
+              <div key={i}
+                onClick={() => setChecked(prev => ({ ...prev, [i]: !prev[i] }))}
+                style={{ display:"flex", alignItems:"flex-start", gap:"12px", padding:"10px 12px", marginBottom:"4px", borderRadius:"var(--radius-sm)", background: checked[i] ? "rgba(201,168,76,0.06)" : "transparent", border:`1px solid ${checked[i] ? "rgba(201,168,76,0.2)" : "var(--border)"}`, cursor:"pointer", transition:"all 0.15s" }}
+                onMouseEnter={e => { if (!checked[i]) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                onMouseLeave={e => { if (!checked[i]) e.currentTarget.style.background = "transparent"; }}
+              >
+                {/* Checkbox */}
+                <div style={{ width:"16px", height:"16px", borderRadius:"3px", border:`1.5px solid ${checked[i] ? "var(--gold)" : "var(--text-3)"}`, background: checked[i] ? "var(--gold)" : "transparent", flexShrink:0, marginTop:"2px", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
+                  {checked[i] && <span style={{ color:"var(--bg)", fontSize:"10px", fontWeight:700 }}>✓</span>}
+                </div>
+                {/* Speaker label */}
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", color: isUser ? "var(--text-2)" : "var(--gold)", opacity:0.7, flexShrink:0, marginTop:"2px", width:"60px" }}>
+                  {isUser ? "You" : "Mathesis"}
+                </div>
+                {/* Preview */}
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:"13px", color:"var(--text-2)", lineHeight:1.5, flex:1 }}>
+                  {preview}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Copy button */}
+        <button onClick={handleCopy} disabled={checkedCount === 0} className="btn-primary"
+          style={{ width:"100%", opacity: checkedCount === 0 ? 0.35 : 1, cursor: checkedCount === 0 ? "not-allowed" : "pointer" }}>
+          {copied ? "✓ Copied to clipboard" : `Copy ${checkedCount > 0 ? checkedCount + " message" + (checkedCount !== 1 ? "s" : "") : "selected messages"}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────
+// FORTUNE TELLER — full screen overlay opener selector
+// ─────────────────────────────────────────────────────────────
+const CARD_ROTATIONS = [-1.8, 1.2, -0.8, 2.1];
+const FORTUNE_CARDS = [
+  { id:"infinity", label:"Sizes of Infinity", symbol:"∞" },
+  { id:"equals",   label:"The Equals Sign",   symbol:"=" },
+  { id:"wild",     label:"Wild Card",          symbol:"?" },
+  { id:"river",    label:"Rivers and Pi",      symbol:"π" },
+];
+const CARD_BACK_BG = "#f0e8d0";
+const CARD_BACK_PATTERN = `repeating-linear-gradient(45deg, rgba(139,110,60,0.08) 0px, rgba(139,110,60,0.08) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(-45deg, rgba(139,110,60,0.06) 0px, rgba(139,110,60,0.06) 1px, transparent 1px, transparent 8px)`;
+
+function FortuneTeller({ onChoose, onClose }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [flippedIdx, setFlippedIdx] = useState(null);
+  const [phase, setPhase] = useState("idle"); // idle | flipping | done
+
+  const handleChoose = (idx) => {
+    if (phase !== "idle") return;
+    setFlippedIdx(idx);
+    setPhase("flipping");
+    setTimeout(() => setPhase("done"), 700);
+    setTimeout(() => {
+      const card = FORTUNE_CARDS[idx];
+      const openerId = card.id === "wild"
+        ? ["infinity","equals","river"][Math.floor(Math.random() * 3)]
+        : card.id;
+      onChoose(openerId, card.id === "wild");
+    }, 1200);
+  };
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:70,
+      background:"rgba(10,10,12,0.97)",
+      display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center",
+      animation:"fadeIn 0.3s ease",
+      padding:"20px",
+    }}>
+      {/* Invitation */}
+      <p style={{
+        fontFamily:"var(--font-display)",
+        fontSize:"clamp(16px,3vw,22px)",
+        fontWeight:400,
+        color:"var(--text-2)",
+        textAlign:"center",
+        marginBottom:"48px",
+        fontStyle:"italic",
+        lineHeight:1.6,
+        opacity: phase === "idle" ? 1 : 0,
+        transition:"opacity 0.3s",
+      }}>
+        Every journey begins with a door.<br/>Choose yours.
+      </p>
+
+      {/* Cards grid */}
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"1fr 1fr",
+        gap:"clamp(12px,3vw,24px)",
+        maxWidth:"440px",
+        width:"100%",
+        perspective:"1000px",
+      }}>
+        {FORTUNE_CARDS.map((card, idx) => {
+          const isFlipped = flippedIdx === idx;
+          const isOther = flippedIdx !== null && flippedIdx !== idx;
+          const rot = CARD_ROTATIONS[idx];
+          const slideX = isOther ? (idx % 2 === 0 ? "-140%" : "140%") : "0";
+
+          return (
+            <div key={card.id}
+              onClick={() => handleChoose(idx)}
+              onMouseEnter={() => phase === "idle" && setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{
+                aspectRatio:"1",
+                position:"relative",
+                transformStyle:"preserve-3d",
+                transform: isOther
+                  ? `translateX(${slideX}) scale(0.8) rotate(${rot}deg)`
+                  : isFlipped
+                    ? `scale(1.06) rotate(0deg)`
+                    : hoveredIdx === idx
+                      ? `translateY(-10px) rotate(${rot}deg) scale(1.04)`
+                      : `rotate(${rot}deg)`,
+                opacity: isOther ? 0 : 1,
+                transition: isOther
+                  ? "all 0.5s cubic-bezier(0.4,0,0.2,1)"
+                  : "transform 0.25s ease, opacity 0.3s",
+                cursor: phase === "idle" ? "pointer" : "default",
+              }}
+            >
+              {/* Inner flip container */}
+              <div style={{
+                width:"100%", height:"100%",
+                position:"relative",
+                transformStyle:"preserve-3d",
+                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                transition:"transform 0.6s cubic-bezier(0.4,0,0.2,1)",
+              }}>
+                {/* BACK */}
+                <div style={{
+                  position:"absolute", inset:0,
+                  backfaceVisibility:"hidden",
+                  WebkitBackfaceVisibility:"hidden",
+                  background:CARD_BACK_BG,
+                  backgroundImage:CARD_BACK_PATTERN,
+                  border:"2px solid rgba(139,110,60,0.3)",
+                  borderRadius:"8px",
+                  boxShadow: hoveredIdx === idx && phase === "idle"
+                    ? "0 16px 48px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.4)"
+                    : "0 6px 20px rgba(0,0,0,0.5)",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  transition:"box-shadow 0.25s",
+                }}>
+                  {/* Back ornament */}
+                  <div style={{ width:"55%", height:"55%", border:"1px solid rgba(139,110,60,0.2)", borderRadius:"4px", display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(139,110,60,0.03)" }}>
+                    <div style={{ width:"38%", height:"38%", border:"1px solid rgba(139,110,60,0.15)", borderRadius:"2px", background:"rgba(139,110,60,0.04)" }} />
+                  </div>
+                  {["tl","tr","bl","br"].map(pos => (
+                    <div key={pos} style={{
+                      position:"absolute",
+                      top: pos.startsWith("t") ? "8px" : undefined,
+                      bottom: pos.startsWith("b") ? "8px" : undefined,
+                      left: pos.endsWith("l") ? "8px" : undefined,
+                      right: pos.endsWith("r") ? "8px" : undefined,
+                      width:"10px", height:"10px",
+                      borderTop: pos.startsWith("t") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderBottom: pos.startsWith("b") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderLeft: pos.endsWith("l") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderRight: pos.endsWith("r") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                    }} />
+                  ))}
+                </div>
+
+                {/* FRONT */}
+                <div style={{
+                  position:"absolute", inset:0,
+                  backfaceVisibility:"hidden",
+                  WebkitBackfaceVisibility:"hidden",
+                  transform:"rotateY(180deg)",
+                  background:"#f8f4e8",
+                  backgroundImage:CARD_BACK_PATTERN,
+                  border:"2px solid rgba(139,110,60,0.45)",
+                  borderRadius:"8px",
+                  boxShadow:"0 16px 48px rgba(0,0,0,0.8)",
+                  display:"flex", flexDirection:"column",
+                  alignItems:"center", justifyContent:"center",
+                  padding:"16px", gap:"10px",
+                }}>
+                  <div style={{ fontFamily:"Georgia,serif", fontSize:"clamp(24px,5vw,36px)", color:"#5a4010", opacity:0.65, lineHeight:1 }}>{card.symbol}</div>
+                  <div style={{ width:"36px", height:"1px", background:"rgba(139,110,60,0.3)" }} />
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:"clamp(11px,2vw,14px)", fontWeight:500, color:"#2a1a08", textAlign:"center", lineHeight:1.3 }}>{card.label}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {phase === "idle" && (
+        <p style={{ fontFamily:"var(--font-ui)", fontSize:"11px", color:"var(--text-3)", textAlign:"center", marginTop:"32px", letterSpacing:"0.08em", opacity:0.5 }}>
+          flip a card to begin
+        </p>
+      )}
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────
+// DYK MESSAGE CARD — renders inside MessageBubble as chat message
+// ─────────────────────────────────────────────────────────────
+const CARD_BACK_PATTERN_CSS = `
+  repeating-linear-gradient(45deg, rgba(139,110,60,0.08) 0px, rgba(139,110,60,0.08) 1px, transparent 1px, transparent 8px),
+  repeating-linear-gradient(-45deg, rgba(139,110,60,0.06) 0px, rgba(139,110,60,0.06) 1px, transparent 1px, transparent 8px)
+`;
+
+function DYKMessageCard({ openerId, isWild, onReply, isFirst }) {
+  const data = OPENERS[openerId];
+  if (!data) return null;
+
+  return (
+    <div style={{ animation: isFirst ? "fadeUp 0.6s ease" : "none" }}>
+      {/* Bridge */}
+      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", color:"var(--text-3)", marginBottom:"20px", lineHeight:1.8 }}>
+        {isWild ? "You chose the unknown path. Here's where it leads." : data.bridge}
+      </p>
+
+      {/* Notebook card */}
+      <div style={{ position:"relative", marginBottom:"20px" }}>
+        <div style={{ position:"absolute", top:"5px", left:"5px", right:"-5px", bottom:"-5px", background:"rgba(201,168,76,0.05)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.07)" }} />
+        <div style={{ position:"absolute", top:"2px", left:"2px", right:"-2px", bottom:"-2px", background:"rgba(201,168,76,0.03)", borderRadius:"3px" }} />
+        <div style={{ position:"relative", background:"#f8f4e8", backgroundImage:CARD_BACK_PATTERN_CSS, borderRadius:"3px", padding:"28px 28px 24px 52px", boxShadow:"0 2px 12px rgba(0,0,0,0.5), 0 6px 24px rgba(0,0,0,0.35)", overflow:"hidden" }}>
+          <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(transparent, transparent 31px, rgba(160,185,210,0.18) 31px, rgba(160,185,210,0.18) 32px)", pointerEvents:"none" }} />
+          <div style={{ position:"absolute", left:"40px", top:0, bottom:0, width:"1px", background:"rgba(200,80,80,0.2)", pointerEvents:"none" }} />
+          <div style={{ position:"absolute", left:"12px", top:"20%", width:"9px", height:"9px", borderRadius:"50%", background:"rgba(0,0,0,0.07)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.12)" }} />
+          <div style={{ position:"absolute", left:"12px", top:"50%", width:"9px", height:"9px", borderRadius:"50%", background:"rgba(0,0,0,0.07)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.12)" }} />
+          <div style={{ position:"absolute", left:"12px", top:"80%", width:"9px", height:"9px", borderRadius:"50%", background:"rgba(0,0,0,0.07)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.12)" }} />
+          <div style={{ position:"relative" }}>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:"9px", fontWeight:700, letterSpacing:"0.22em", textTransform:"uppercase", color:"#8a7840", marginBottom:"12px", opacity:0.7 }}>✦ Did you know</div>
+            <p style={{ fontFamily:"Georgia, serif", fontSize:"15.5px", lineHeight:"1.95", color:"#1c1810", whiteSpace:"pre-line", fontWeight:400 }}>{data.card}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Closing */}
+      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", fontStyle:"italic", color:"var(--text-2)", marginBottom:"20px", lineHeight:1.8 }}>{data.closing}</p>
+
+      {/* Reply chips — only shown when isFirst (first time this appears) */}
+      {isFirst && (
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+          {data.replies.map((r, i) => (
+            <button key={i} onClick={() => onReply && onReply(r)}
+              style={{ padding:"8px 15px", background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:"20px", color:"var(--text-2)", fontFamily:"var(--font-ui)", fontSize:"13px", cursor:"pointer", transition:"all 0.2s", lineHeight:1.3 }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(201,168,76,0.3)";e.currentTarget.style.color="var(--text-1)";e.currentTarget.style.background="var(--bg-hover)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text-2)";e.currentTarget.style.background="var(--bg-card)";}}
+            >{r}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 // ─────────────────────────────────────────────────────────────
 // MESSAGE BUBBLE
 // ─────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isNew, onSaveElement, copyMode, isSelected, isSelectionStart, onSelectStart, onSelectEnd }) {
+function MessageBubble({ msg, isNew, onSaveElement, onReply, isFirst }) {
   const isUser = msg.role === "user";
   const isEval = typeof msg.content === "string" && msg.content.startsWith("✦ ");
   const segments = !isUser ? parseSegments(msg.content || "") : null;
@@ -1303,39 +1345,8 @@ function MessageBubble({ msg, isNew, onSaveElement, copyMode, isSelected, isSele
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", marginBottom:"20px", animation:isNew?"fadeUp 0.4s ease forwards":"none", position:"relative", background: isSelected ? "rgba(201,168,76,0.04)" : "transparent", borderRadius:"var(--radius-sm)", transition:"background 0.2s", padding:"2px 0" }}>
-      {copyMode && (
-        <div
-          onClick={isSelectionStart ? onSelectEnd : onSelectStart}
-          style={{
-            position:"absolute", inset:0, zIndex:4, cursor:"pointer",
-            borderRadius:"var(--radius-sm)",
-            border: isSelectionStart
-              ? "2px solid rgba(201,168,76,0.7)"
-              : isSelected
-                ? "1px solid rgba(201,168,76,0.35)"
-                : hovered
-                  ? "1px dashed rgba(201,168,76,0.25)"
-                  : "1px solid transparent",
-            background: isSelected ? "rgba(201,168,76,0.04)" : "transparent",
-            transition:"all 0.15s",
-          }}
-        >
-          {hovered && (
-            <div style={{
-              position:"absolute", right:"8px", top:"50%", transform:"translateY(-50%)",
-              background: isSelectionStart ? "var(--gold)" : "var(--bg-card)",
-              border:`1px solid ${isSelectionStart ? "var(--gold)" : "rgba(201,168,76,0.4)"}`,
-              borderRadius:"50%", width:"20px", height:"20px",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:"9px", color: isSelectionStart ? "var(--bg)" : "var(--gold)",
-              boxShadow:"0 2px 8px rgba(0,0,0,0.4)",
-            }}>
-              {isSelectionStart ? "●" : "○"}
-            </div>
-          )}
-        </div>
-      )}
+      style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", marginBottom:"20px", animation:isNew?"fadeUp 0.4s ease forwards":"none", position:"relative", padding:"2px 0" }}>
+
       {!isUser && (
         <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: isEval ? "rgba(201,168,76,0.1)" : "rgba(201,168,76,0.08)", border:"1px solid rgba(201,168,76,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", flexShrink:0, marginRight:"10px", marginTop:"3px", color:"var(--gold)" }}>
           {isEval ? "✦" : "∞"}
@@ -1350,6 +1361,7 @@ function MessageBubble({ msg, isNew, onSaveElement, copyMode, isSelected, isSele
             if (seg.type === "spark") return <SparkCard key={i} sparkType={seg.sparkType} label={seg.label} content={seg.content} />;
             if (seg.type === "saveElement") return <ElementNominationCard key={i} nomination={seg.nomination} onSave={d => onSaveElement && onSaveElement({ userDescription:d, mathematicalNote:seg.nomination, timestamp:new Date().toISOString(), nominatedBy:"ai" })} />;
             if (seg.type === "mathematician") return <MathematicianCard key={i} name={seg.name} years={seg.years} content={seg.content} />;
+            if (seg.type === "dyk") return <DYKMessageCard key={i} openerId={seg.openerId} isWild={seg.isWild} onReply={onReply} isFirst={isFirst} />;
             const trimmed = seg.content.trim();
             if (!trimmed) return null;
             return (
@@ -1390,12 +1402,10 @@ export default function App() {
   const [pingVisible, setPingVisible] = useState(false);
   const [exchangeCount, setExchangeCount] = useState(0);
   const [showDYK, setShowDYK] = useState(true);
-  const [openerChosen, setOpenerChosen] = useState(false);
-  const [isWild, setIsWild] = useState(false);
-  const [selectionStart, setSelectionStart] = useState(null);
-  const [selectionEnd, setSelectionEnd] = useState(null);
-  const [copyMode, setCopyMode] = useState(false);
-  const [copyConfirmed, setCopyConfirmed] = useState(false);
+  const [showFortuneTeller, setShowFortuneTeller] = useState(false);
+  const [dykMessageIndex, setDykMessageIndex] = useState(-1); // which message index is the DYK card
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [pendingReplies, setPendingReplies] = useState([]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -1534,12 +1544,13 @@ export default function App() {
   }, [authUser]);
 
   const handleAIResponse = useCallback((raw) => {
-    const { clean, branch, challenge } = parseAIResponse(raw);
+    const { clean, branch, challenge, replies } = parseAIResponse(raw);
     discoverTopics(clean);
     const aiMsg = { role:"assistant", content:clean };
     conversationRef.current = [...conversationRef.current, aiMsg];
     journeyRef.current.messages = conversationRef.current;
     setMessages(prev => { setNewMsgIndex(prev.length); return [...prev, aiMsg]; });
+    setPendingReplies(replies || []);
     if (branch) setTimeout(() => setPendingBranch(branch), 500);
     if (challenge) setTimeout(() => setPendingChallenge(challenge), branch ? 800 : 400);
     const aiTurns = conversationRef.current.filter(m => m.role === "assistant").length;
@@ -1561,13 +1572,11 @@ export default function App() {
 
     const hasHistory = conversationRef.current.filter(m => !m.content?.startsWith("__sys__")).length > 1;
     if (!hasHistory) {
-      // New user — show Did You Know card, no AI call yet
+      // New user — show fortune teller overlay
       conversationRef.current = [];
       setMessages([]);
       setShowDYK(true);
-      setOpenerChosen(false);
-      setIsWild(false);
-      setTimeout(() => inputRef.current?.focus(), 200);
+      setShowFortuneTeller(true);
       return;
     }
 
@@ -1594,6 +1603,7 @@ export default function App() {
     if (!text || isThinking) return;
     setInput("");
     setPendingBranch(null);
+    setPendingReplies([]);
     setExchangeCount(c => c + 1);
     discoverTopics(text);
     const userMsg = { role:"user", content:text };
@@ -1624,6 +1634,31 @@ export default function App() {
     if (authUser) saveJourney(authUser.uid, journeyRef.current);
   };
 
+
+  const handleFortuneChoose = useCallback((openerId, wild) => {
+    setShowFortuneTeller(false);
+    handleSelectOpener(openerId);
+    const dykContent = `__dyk__${openerId}__${wild ? "wild" : "normal"}`;
+    const dykMsg = { role:"assistant", content: dykContent };
+    const isFirstMessage = conversationRef.current.length === 0;
+    if (isFirstMessage) {
+      // First session — DYK is the very first message
+      conversationRef.current = [dykMsg];
+      journeyRef.current.messages = conversationRef.current;
+      setDykMessageIndex(0);
+      setMessages([dykMsg]);
+    } else {
+      // Mid-conversation — append DYK as next message
+      conversationRef.current = [...conversationRef.current, dykMsg];
+      journeyRef.current.messages = conversationRef.current;
+      setMessages(prev => {
+        setDykMessageIndex(prev.length);
+        return [...prev, dykMsg];
+      });
+    }
+    if (authUser) saveJourney(authUser.uid, journeyRef.current);
+    setTimeout(() => inputRef.current?.focus(), 200);
+  }, [authUser]);
   const handleSelectOpener = (openerId) => {
     setActiveOpener(openerId);
     activeOpenerRef.current = openerId;
@@ -1946,8 +1981,11 @@ export default function App() {
                   <span>{discovered.size}/{TOTAL_NODES}</span>
                 </button>
 
-                <button className="btn-icon" onClick={() => { setCopyMode(!copyMode); setSelectionStart(null); setSelectionEnd(null); }} style={{ borderColor: copyMode ? "rgba(201,168,76,0.4)" : "var(--border)", color: copyMode ? "var(--gold)" : "var(--text-3)" }}>
-                  {copyMode ? "✕ Cancel share" : "Share exchange"}
+                <button className="btn-icon" onClick={() => setShowFortuneTeller(true)} style={{ borderColor:"rgba(201,168,76,0.2)", color:"var(--text-3)" }}>
+                  New door
+                </button>
+                <button className="btn-icon" onClick={() => setShowSharePanel(true)}>
+                  Share exchange
                 </button>
                 <button className="btn-icon" onClick={handleSignOut}>Sign out</button>
               </div>
@@ -1955,32 +1993,11 @@ export default function App() {
             {/* Messages */}
             <div style={{ flex:1, overflowY:"auto", padding:"26px 0 10px" }}>
 
-              {/* Fortune teller — opener selection for new users */}
-              {!isReturning && showDYK && !openerChosen && (
-                <FortuneTeller onChoose={(openerId, wild) => {
-                  handleSelectOpener(openerId);
-                  setIsWild(wild);
-                  setOpenerChosen(true);
-                }} />
-              )}
-
-              {/* DYK card — shown after opener chosen */}
-              {!isReturning && showDYK && openerChosen && (
-                <DidYouKnowCard
-                  opener={activeOpener}
-                  isWild={isWild}
-                  onReply={sendMessage}
-                  exchangeCount={exchangeCount}
-                />
-              )}
-
               {messages.map((msg, i) => (
                 <MessageBubble key={i} msg={msg} isNew={i === newMsgIndex}
-                  copyMode={copyMode}
-                  isSelected={selectionStart !== null && selectionEnd !== null && i >= Math.min(selectionStart, selectionEnd) && i <= Math.max(selectionStart, selectionEnd)}
-                  isSelectionStart={selectionStart === i}
-                  onSelectStart={() => { setSelectionStart(i); setSelectionEnd(null); setCopyConfirmed(false); }}
-                  onSelectEnd={() => { if (selectionStart !== null && i !== selectionStart) setSelectionEnd(i); }}
+                  isFirst={i === dykMessageIndex}
+                  onReply={i === dykMessageIndex ? sendMessage : undefined}
+
                   onSaveElement={entry => {
                     journeyRef.current.elements = [...(journeyRef.current.elements || []), entry];
                     if (authUser) saveJourney(authUser.uid, journeyRef.current);
@@ -1988,39 +2005,17 @@ export default function App() {
                   }} />
               ))}
 
-              {/* Copy exchange toolbar */}
-              {copyMode && selectionStart !== null && selectionEnd !== null && (
-                <div style={{ position:"sticky", bottom:"12px", display:"flex", justifyContent:"center", zIndex:10, marginTop:"12px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"10px", background:"var(--bg-card)", border:"1px solid rgba(201,168,76,0.3)", borderRadius:"24px", padding:"10px 20px", boxShadow:"0 4px 24px rgba(0,0,0,0.6)" }}>
-                    <span style={{ fontFamily:"var(--font-ui)", fontSize:"12px", color:"var(--text-2)" }}>
-                      {Math.abs(selectionEnd - selectionStart) + 1} messages selected
-                    </span>
-                    <button onClick={() => {
-                      const start = Math.min(selectionStart, selectionEnd);
-                      const end = Math.max(selectionStart, selectionEnd);
-                      const selected = messages.slice(start, end + 1);
-                      const date = new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" });
-                      const lines = [
-                        "─────────────────────────────────────────",
-                        `MATHESIS  ·  Exchange  ·  ${date}`,
-                        "─────────────────────────────────────────",
-                        "",
-                      ];
-                      selected.forEach(msg => {
-                        const speaker = msg.role === "user" ? "YOU" : "MATHESIS";
-                        const text = (msg.content || "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\[SPARK[^\]]*\][\s\S]*?\[\/SPARK\]/g, "").replace(/\[MATHEMATICIAN[^\]]*\][\s\S]*?\[\/MATHEMATICIAN\]/g, "").replace(/\[SAVE_ELEMENT\][\s\S]*?\[\/SAVE_ELEMENT\]/g, "").replace(/\[BRANCH:[^\]]*\]/g, "").replace(/\[CHALLENGE:[^\]]*\]/g, "").trim();
-                        if (text) { lines.push(speaker); lines.push(text); lines.push(""); }
-                      });
-                      lines.push("─────────────────────────────────────────");
-                      lines.push("Shared from mathesis.in");
-                      navigator.clipboard.writeText(lines.join("\n"));
-                      setCopyConfirmed(true);
-                      setTimeout(() => { setCopyConfirmed(false); setCopyMode(false); setSelectionStart(null); setSelectionEnd(null); }, 2000);
-                    }} className="btn-primary" style={{ padding:"7px 20px", fontSize:"12px" }}>
-                      {copyConfirmed ? "✓ Copied" : "Copy exchange"}
-                    </button>
-                    <button onClick={() => { setCopyMode(false); setSelectionStart(null); setSelectionEnd(null); }} className="btn-ghost" style={{ padding:"7px 12px", fontSize:"11px" }}>Cancel</button>
-                  </div>
+
+                            {/* Persistent reply chips — shown after last Mathesis message */}
+              {pendingReplies.length > 0 && !isThinking && !pendingBranch && !pendingChallenge && (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", marginBottom:"16px", marginLeft:"38px", animation:"fadeUp 0.3s ease" }}>
+                  {pendingReplies.map((r, i) => (
+                    <button key={i} onClick={() => sendMessage(r)}
+                      style={{ padding:"8px 16px", background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:"20px", color:"var(--text-2)", fontFamily:"var(--font-ui)", fontSize:"13px", cursor:"pointer", transition:"all 0.2s", lineHeight:1.3 }}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(201,168,76,0.3)";e.currentTarget.style.color="var(--text-1)";e.currentTarget.style.background="var(--bg-hover)";}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text-2)";e.currentTarget.style.background="var(--bg-card)";}}
+                    >{r}</button>
+                  ))}
                 </div>
               )}
 
@@ -2086,6 +2081,22 @@ export default function App() {
             </div>
           </div>
         )}
+        {/* ══ SHARE PANEL ══ */}
+        {showSharePanel && (
+          <SharePanel
+            messages={messages}
+            onClose={() => setShowSharePanel(false)}
+          />
+        )}
+
+        {/* ══ FORTUNE TELLER OVERLAY ══ */}
+        {showFortuneTeller && (
+          <FortuneTeller
+            onChoose={(openerId, wild) => handleFortuneChoose(openerId, wild)}
+            onClose={() => setShowFortuneTeller(false)}
+          />
+        )}
+
         {/* ══ CONSTELLATION ══ */}
         {showConstellation && <ConstellationMap discovered={discovered} onClose={() => setShowConstellation(false)} />}
       </div>
