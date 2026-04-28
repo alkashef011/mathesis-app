@@ -784,40 +784,310 @@ function ProfileForm({ userName, onComplete }) {
 // ─────────────────────────────────────────────────────────────
 // DID YOU KNOW CARD
 // ─────────────────────────────────────────────────────────────
-function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
-  const data = OPENERS[opener];
-  const altOpeners = OPENER_LIST.filter(id => id !== opener);
-  const showReplies = exchangeCount < 4;
-  const isEngaged = exchangeCount > 0;
+// ─────────────────────────────────────────────────────────────
+// FORTUNE TELLER + DYK CARD — complete first experience
+// ─────────────────────────────────────────────────────────────
+
+// Card back aged paper pattern — SVG crosshatch
+const CARD_BACK_PATTERN = `
+  repeating-linear-gradient(
+    45deg,
+    rgba(139,110,60,0.08) 0px,
+    rgba(139,110,60,0.08) 1px,
+    transparent 1px,
+    transparent 8px
+  ),
+  repeating-linear-gradient(
+    -45deg,
+    rgba(139,110,60,0.06) 0px,
+    rgba(139,110,60,0.06) 1px,
+    transparent 1px,
+    transparent 8px
+  )
+`;
+
+// Slight rotation for each card — imperfect human placement
+const CARD_ROTATIONS = [-1.8, 1.2, -0.8, 2.1];
+
+// Card configs including wild card
+const FORTUNE_CARDS = [
+  { id: "infinity",  label: "Sizes of Infinity",  symbol: "∞" },
+  { id: "equals",    label: "The Equals Sign",     symbol: "=" },
+  { id: "wild",      label: "Wild Card",           symbol: "?" },
+  { id: "river",     label: "Rivers and Pi",       symbol: "π" },
+];
+
+function FortuneTeller({ onChoose }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [flippedIdx, setFlippedIdx] = useState(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [phase, setPhase] = useState("selection"); // selection | flipping | expanding | done
+
+  const handleChoose = (idx) => {
+    if (isAnimating || flippedIdx !== null) return;
+    setIsAnimating(true);
+    setFlippedIdx(idx);
+    setPhase("flipping");
+
+    // After flip completes, slide others away
+    setTimeout(() => {
+      setPhase("expanding");
+    }, 700);
+
+    // After expansion, call onChoose
+    setTimeout(() => {
+      setPhase("done");
+      const card = FORTUNE_CARDS[idx];
+      const openerId = card.id === "wild"
+        ? ["infinity", "equals", "river"][Math.floor(Math.random() * 3)]
+        : card.id;
+      onChoose(openerId, card.id === "wild");
+    }, 1400);
+  };
 
   return (
-    <div style={{ marginBottom:"32px", animation:"fadeUp 0.7s ease" }}>
+    <div style={{ marginBottom:"40px" }}>
+      {/* Invitation line */}
+      <p style={{
+        fontFamily:"var(--font-display)",
+        fontSize:"18px",
+        fontWeight:400,
+        color:"var(--text-2)",
+        textAlign:"center",
+        marginBottom:"40px",
+        fontStyle:"italic",
+        opacity: phase === "selection" ? 1 : 0,
+        transition:"opacity 0.3s",
+        lineHeight:1.5,
+      }}>
+        Every journey begins with a door.<br/>Choose yours.
+      </p>
 
-      {/* Bridge */}
-      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", color:"var(--text-3)", marginBottom:"24px", lineHeight:1.8, letterSpacing:"0.01em" }}>{data.bridge}</p>
+      {/* 2x2 grid */}
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"1fr 1fr",
+        gap:"20px",
+        maxWidth:"480px",
+        margin:"0 auto",
+        perspective:"1000px",
+      }}>
+        {FORTUNE_CARDS.map((card, idx) => {
+          const isFlipped = flippedIdx === idx;
+          const isOther = flippedIdx !== null && flippedIdx !== idx;
+          const rot = CARD_ROTATIONS[idx];
 
-      {/* Physical card */}
+          // Slide direction for unchosen cards
+          const slideX = isOther ? (idx % 2 === 0 ? "-120%" : "120%") : "0";
+          const slideY = isOther ? (idx < 2 ? "-30px" : "30px") : "0";
+
+          return (
+            <div
+              key={card.id}
+              onClick={() => handleChoose(idx)}
+              onMouseEnter={() => !isAnimating && setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{
+                aspectRatio:"1",
+                position:"relative",
+                transform: isOther
+                  ? `translateX(${slideX}) translateY(${slideY}) scale(0.85) rotate(${rot}deg)`
+                  : isFlipped
+                    ? `scale(1.05) rotate(0deg)`
+                    : hoveredIdx === idx && !isAnimating
+                      ? `translateY(-8px) rotate(${rot}deg) scale(1.03)`
+                      : `rotate(${rot}deg)`,
+                opacity: isOther ? 0 : 1,
+                transition: isOther
+                  ? "all 0.5s cubic-bezier(0.4,0,0.2,1)"
+                  : isFlipped
+                    ? "transform 0.4s cubic-bezier(0.4,0,0.2,1)"
+                    : "transform 0.25s ease, opacity 0.3s",
+                cursor: isAnimating ? "default" : "pointer",
+                transformStyle:"preserve-3d",
+              }}
+            >
+              {/* Card inner — flips on click */}
+              <div style={{
+                width:"100%",
+                height:"100%",
+                position:"relative",
+                transformStyle:"preserve-3d",
+                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                transition:"transform 0.6s cubic-bezier(0.4,0,0.2,1)",
+              }}>
+
+                {/* BACK FACE */}
+                <div style={{
+                  position:"absolute",
+                  inset:0,
+                  backfaceVisibility:"hidden",
+                  WebkitBackfaceVisibility:"hidden",
+                  background:`#f0e8d0`,
+                  backgroundImage:CARD_BACK_PATTERN,
+                  border:"2px solid rgba(139,110,60,0.3)",
+                  borderRadius:"6px",
+                  boxShadow: hoveredIdx === idx && !isAnimating
+                    ? "0 12px 40px rgba(0,0,0,0.7), 0 4px 12px rgba(0,0,0,0.4)"
+                    : "0 6px 20px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  transition:"box-shadow 0.25s",
+                }}>
+                  {/* Center ornament */}
+                  <div style={{
+                    width:"60%",
+                    height:"60%",
+                    border:"1px solid rgba(139,110,60,0.2)",
+                    borderRadius:"4px",
+                    display:"flex",
+                    alignItems:"center",
+                    justifyContent:"center",
+                    background:"rgba(139,110,60,0.03)",
+                  }}>
+                    <div style={{
+                      width:"40%",
+                      height:"40%",
+                      border:"1px solid rgba(139,110,60,0.15)",
+                      borderRadius:"2px",
+                      background:"rgba(139,110,60,0.04)",
+                    }} />
+                  </div>
+                  {/* Corner ornaments */}
+                  {["topleft","topright","bottomleft","bottomright"].map(pos => (
+                    <div key={pos} style={{
+                      position:"absolute",
+                      top: pos.includes("top") ? "8px" : undefined,
+                      bottom: pos.includes("bottom") ? "8px" : undefined,
+                      left: pos.includes("left") ? "8px" : undefined,
+                      right: pos.includes("right") ? "8px" : undefined,
+                      width:"10px",
+                      height:"10px",
+                      borderTop: pos.includes("top") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderBottom: pos.includes("bottom") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderLeft: pos.includes("left") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                      borderRight: pos.includes("right") ? "1px solid rgba(139,110,60,0.25)" : undefined,
+                    }} />
+                  ))}
+                </div>
+
+                {/* FRONT FACE */}
+                <div style={{
+                  position:"absolute",
+                  inset:0,
+                  backfaceVisibility:"hidden",
+                  WebkitBackfaceVisibility:"hidden",
+                  transform:"rotateY(180deg)",
+                  background:"#f8f4e8",
+                  backgroundImage:CARD_BACK_PATTERN,
+                  border:"2px solid rgba(139,110,60,0.4)",
+                  borderRadius:"6px",
+                  boxShadow:"0 12px 40px rgba(0,0,0,0.7)",
+                  display:"flex",
+                  flexDirection:"column",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  padding:"16px",
+                  gap:"12px",
+                }}>
+                  {/* Symbol */}
+                  <div style={{
+                    fontFamily:"Georgia,serif",
+                    fontSize:"32px",
+                    color:"#5a4010",
+                    opacity:0.6,
+                    lineHeight:1,
+                  }}>{card.symbol}</div>
+                  {/* Divider */}
+                  <div style={{
+                    width:"40px",
+                    height:"1px",
+                    background:"rgba(139,110,60,0.3)",
+                  }} />
+                  {/* Title */}
+                  <div style={{
+                    fontFamily:"var(--font-display)",
+                    fontSize:"14px",
+                    fontWeight:500,
+                    color:"#2a1a08",
+                    textAlign:"center",
+                    lineHeight:1.3,
+                    letterSpacing:"0.02em",
+                  }}>{card.label}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Subtle hint */}
+      {phase === "selection" && (
+        <p style={{
+          fontFamily:"var(--font-ui)",
+          fontSize:"11px",
+          color:"var(--text-3)",
+          textAlign:"center",
+          marginTop:"28px",
+          letterSpacing:"0.08em",
+          opacity:0.6,
+        }}>flip a card to begin</p>
+      )}
+    </div>
+  );
+}
+
+function DidYouKnowCard({ opener, isWild, onReply, exchangeCount }) {
+  const data = OPENERS[opener];
+  const showReplies = exchangeCount === 0;
+
+  return (
+    <div style={{ animation:"fadeUp 0.6s ease" }}>
+
+      {/* Bridge — different for wild card */}
+      <p style={{
+        fontFamily:"var(--font-ui)",
+        fontSize:"14px",
+        color:"var(--text-3)",
+        marginBottom:"24px",
+        lineHeight:1.8,
+        letterSpacing:"0.01em",
+      }}>
+        {isWild
+          ? "You chose the unknown path. Here's where it leads."
+          : data.bridge}
+      </p>
+
+      {/* Physical notebook card — expands from fortune teller */}
       <div style={{ position:"relative", marginBottom:"24px" }}>
-        {/* Shadow layers for depth */}
+        {/* Depth shadow layers */}
         <div style={{ position:"absolute", top:"6px", left:"6px", right:"-6px", bottom:"-6px", background:"rgba(201,168,76,0.06)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.08)" }} />
         <div style={{ position:"absolute", top:"3px", left:"3px", right:"-3px", bottom:"-3px", background:"rgba(201,168,76,0.04)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.06)" }} />
 
-        {/* Main card */}
-        <div style={{ position:"relative", background:"#f8f4e8", borderRadius:"3px", padding:"32px 32px 28px 56px", boxShadow:"0 2px 12px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4)", overflow:"hidden" }}>
-          {/* Paper texture overlay */}
-          <div style={{ position:"absolute", inset:0, backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E\")", pointerEvents:"none", opacity:0.4 }} />
+        {/* Main card — same aged paper as fortune teller backs */}
+        <div style={{
+          position:"relative",
+          background:"#f8f4e8",
+          borderRadius:"3px",
+          padding:"32px 32px 28px 56px",
+          boxShadow:"0 2px 12px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4)",
+          overflow:"hidden",
+        }}>
           {/* Ruled lines */}
           <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(transparent, transparent 31px, rgba(160,185,210,0.18) 31px, rgba(160,185,210,0.18) 32px)", pointerEvents:"none" }} />
-          {/* Red margin line */}
+          {/* Red margin */}
           <div style={{ position:"absolute", left:"44px", top:0, bottom:0, width:"1px", background:"rgba(200,80,80,0.2)", pointerEvents:"none" }} />
           {/* Binding holes */}
           <div style={{ position:"absolute", left:"14px", top:"20%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
           <div style={{ position:"absolute", left:"14px", top:"50%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
           <div style={{ position:"absolute", left:"14px", top:"80%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
+          {/* Aged paper pattern — same crosshatch as card backs for continuity */}
+          <div style={{ position:"absolute", inset:0, backgroundImage:CARD_BACK_PATTERN, opacity:0.3, pointerEvents:"none" }} />
 
           <div style={{ position:"relative" }}>
             <div style={{ fontFamily:"var(--font-ui)", fontSize:"9px", fontWeight:700, letterSpacing:"0.24em", textTransform:"uppercase", color:"#8a7840", marginBottom:"14px", opacity:0.7 }}>✦ Did you know</div>
-            <p style={{ fontFamily:"'Georgia', serif", fontSize:"16px", lineHeight:"2.0", color:"#1c1810", whiteSpace:"pre-line", fontWeight:400 }}>{data.card}</p>
+            <p style={{ fontFamily:"Georgia, serif", fontSize:"16px", lineHeight:"2.0", color:"#1c1810", whiteSpace:"pre-line", fontWeight:400 }}>{data.card}</p>
           </div>
         </div>
       </div>
@@ -825,9 +1095,9 @@ function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
       {/* Closing line */}
       <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", fontStyle:"italic", color:"var(--text-2)", marginBottom:"24px", lineHeight:1.8 }}>{data.closing}</p>
 
-      {/* Quick reply chips */}
+      {/* Reply chips — only before first reply */}
       {showReplies && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", marginBottom:"28px" }}>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", marginBottom:"16px" }}>
           {data.replies.map((r, i) => (
             <button key={i} onClick={() => onReply(r)}
               style={{ padding:"9px 16px", background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:"20px", color:"var(--text-2)", fontFamily:"var(--font-ui)", fontSize:"13px", cursor:"pointer", transition:"all 0.2s", lineHeight:1.3 }}
@@ -837,26 +1107,11 @@ function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
           ))}
         </div>
       )}
-
-      {/* Alt openers — hidden once conversation has started */}
-      {!isEngaged && <div style={{ borderTop:"1px solid var(--border)", paddingTop:"20px" }}>
-        <div style={{ fontFamily:"var(--font-ui)", fontSize:"10px", fontWeight:500, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--text-3)", marginBottom:"12px" }}>Or explore a different door</div>
-        <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
-          {altOpeners.map(id => (
-            <button key={id} onClick={() => onSelectOpener(id)}
-              style={{ padding:"10px 16px", background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:"var(--radius-sm)", color:"var(--text-2)", fontFamily:"var(--font-ui)", fontSize:"13px", cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--border-md)";e.currentTarget.style.color="var(--text-1)";}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text-2)";}}
-            >
-              <span style={{ color:"var(--gold)", marginRight:"6px", fontSize:"10px" }}>✦</span>
-              {OPENERS[id].title}
-            </button>
-          ))}
-        </div>
-      </div>}
     </div>
   );
 }
+
+
 // ─────────────────────────────────────────────────────────────
 // CONSTELLATION MAP
 // ─────────────────────────────────────────────────────────────
@@ -1049,11 +1304,37 @@ function MessageBubble({ msg, isNew, onSaveElement, copyMode, isSelected, isSele
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", marginBottom:"20px", animation:isNew?"fadeUp 0.4s ease forwards":"none", position:"relative", background: isSelected ? "rgba(201,168,76,0.04)" : "transparent", borderRadius:"var(--radius-sm)", transition:"background 0.2s", padding:"2px 0" }}>
-      {copyMode && hovered && (
-        <button onClick={isSelectionStart ? onSelectEnd : onSelectStart}
-          style={{ position:"absolute", left:isUser?undefined:"-28px", right:isUser?"-28px":undefined, top:"50%", transform:"translateY(-50%)", background: isSelectionStart ? "var(--gold)" : "var(--bg-card)", border:`1px solid ${isSelectionStart ? "var(--gold)" : "rgba(201,168,76,0.3)"}`, borderRadius:"50%", width:"18px", height:"18px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"8px", color: isSelectionStart ? "var(--bg)" : "var(--gold)", zIndex:5, flexShrink:0 }}>
-          {isSelectionStart ? "●" : "○"}
-        </button>
+      {copyMode && (
+        <div
+          onClick={isSelectionStart ? onSelectEnd : onSelectStart}
+          style={{
+            position:"absolute", inset:0, zIndex:4, cursor:"pointer",
+            borderRadius:"var(--radius-sm)",
+            border: isSelectionStart
+              ? "2px solid rgba(201,168,76,0.7)"
+              : isSelected
+                ? "1px solid rgba(201,168,76,0.35)"
+                : hovered
+                  ? "1px dashed rgba(201,168,76,0.25)"
+                  : "1px solid transparent",
+            background: isSelected ? "rgba(201,168,76,0.04)" : "transparent",
+            transition:"all 0.15s",
+          }}
+        >
+          {hovered && (
+            <div style={{
+              position:"absolute", right:"8px", top:"50%", transform:"translateY(-50%)",
+              background: isSelectionStart ? "var(--gold)" : "var(--bg-card)",
+              border:`1px solid ${isSelectionStart ? "var(--gold)" : "rgba(201,168,76,0.4)"}`,
+              borderRadius:"50%", width:"20px", height:"20px",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"9px", color: isSelectionStart ? "var(--bg)" : "var(--gold)",
+              boxShadow:"0 2px 8px rgba(0,0,0,0.4)",
+            }}>
+              {isSelectionStart ? "●" : "○"}
+            </div>
+          )}
+        </div>
       )}
       {!isUser && (
         <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: isEval ? "rgba(201,168,76,0.1)" : "rgba(201,168,76,0.08)", border:"1px solid rgba(201,168,76,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", flexShrink:0, marginRight:"10px", marginTop:"3px", color:"var(--gold)" }}>
@@ -1109,6 +1390,8 @@ export default function App() {
   const [pingVisible, setPingVisible] = useState(false);
   const [exchangeCount, setExchangeCount] = useState(0);
   const [showDYK, setShowDYK] = useState(true);
+  const [openerChosen, setOpenerChosen] = useState(false);
+  const [isWild, setIsWild] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectionEnd, setSelectionEnd] = useState(null);
   const [copyMode, setCopyMode] = useState(false);
@@ -1282,6 +1565,8 @@ export default function App() {
       conversationRef.current = [];
       setMessages([]);
       setShowDYK(true);
+      setOpenerChosen(false);
+      setIsWild(false);
       setTimeout(() => inputRef.current?.focus(), 200);
       return;
     }
@@ -1670,12 +1955,21 @@ export default function App() {
             {/* Messages */}
             <div style={{ flex:1, overflowY:"auto", padding:"26px 0 10px" }}>
 
-              {/* Did You Know card — shown for new users before first AI exchange */}
-              {!isReturning && showDYK && (
+              {/* Fortune teller — opener selection for new users */}
+              {!isReturning && showDYK && !openerChosen && (
+                <FortuneTeller onChoose={(openerId, wild) => {
+                  handleSelectOpener(openerId);
+                  setIsWild(wild);
+                  setOpenerChosen(true);
+                }} />
+              )}
+
+              {/* DYK card — shown after opener chosen */}
+              {!isReturning && showDYK && openerChosen && (
                 <DidYouKnowCard
                   opener={activeOpener}
+                  isWild={isWild}
                   onReply={sendMessage}
-                  onSelectOpener={handleSelectOpener}
                   exchangeCount={exchangeCount}
                 />
               )}
