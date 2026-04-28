@@ -477,10 +477,10 @@ function FloatingSymbols() {
     symbol: MATH_SYMBOLS[i % MATH_SYMBOLS.length],
     x: Math.random() * 100,
     y: Math.random() * 100,
-    size: 11 + Math.random() * 16,
-    dur: 28 + Math.random() * 24,
-    delay: Math.random() * -50,
-    op: 0.018 + Math.random() * 0.028,
+    size: 10 + Math.random() * 22,
+    dur: 40 + Math.random() * 40,
+    delay: Math.random() * -80,
+    op: 0.012 + Math.random() * 0.018,
   })));
   return (
     <div style={{ position:"fixed", inset:0, pointerEvents:"none", overflow:"hidden", zIndex:0 }}>
@@ -788,27 +788,42 @@ function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
   const data = OPENERS[opener];
   const altOpeners = OPENER_LIST.filter(id => id !== opener);
   const showReplies = exchangeCount < 4;
+  const isEngaged = exchangeCount > 0;
 
   return (
-    <div style={{ marginBottom:"32px", animation:"fadeUp 0.6s ease" }}>
+    <div style={{ marginBottom:"32px", animation:"fadeUp 0.7s ease" }}>
 
       {/* Bridge */}
-      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", color:"var(--text-3)", marginBottom:"20px", lineHeight:1.7, letterSpacing:"0.01em" }}>{data.bridge}</p>
+      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", color:"var(--text-3)", marginBottom:"24px", lineHeight:1.8, letterSpacing:"0.01em" }}>{data.bridge}</p>
 
-      {/* Notebook card */}
-      <div style={{ position:"relative", background:"#faf7ee", borderRadius:"var(--radius-md)", padding:"28px 28px 24px 48px", marginBottom:"20px", boxShadow:"0 4px 24px rgba(0,0,0,0.5)", overflow:"hidden" }}>
-        {/* Ruled lines */}
-        <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(transparent, transparent 27px, rgba(180,195,210,0.25) 27px, rgba(180,195,210,0.25) 28px)", pointerEvents:"none" }} />
-        {/* Red margin */}
-        <div style={{ position:"absolute", left:"36px", top:0, bottom:0, width:"1px", background:"rgba(220,100,100,0.25)", pointerEvents:"none" }} />
-        <div style={{ position:"relative" }}>
-          <div style={{ fontFamily:"var(--font-ui)", fontSize:"9px", fontWeight:600, letterSpacing:"0.2em", textTransform:"uppercase", color:"#9a8a50", marginBottom:"12px" }}>Did you know</div>
-          <p style={{ fontFamily:"Georgia, serif", fontSize:"16.5px", lineHeight:"1.9", color:"#1a1810", whiteSpace:"pre-line" }}>{data.card}</p>
+      {/* Physical card */}
+      <div style={{ position:"relative", marginBottom:"24px" }}>
+        {/* Shadow layers for depth */}
+        <div style={{ position:"absolute", top:"6px", left:"6px", right:"-6px", bottom:"-6px", background:"rgba(201,168,76,0.06)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.08)" }} />
+        <div style={{ position:"absolute", top:"3px", left:"3px", right:"-3px", bottom:"-3px", background:"rgba(201,168,76,0.04)", borderRadius:"3px", border:"1px solid rgba(201,168,76,0.06)" }} />
+
+        {/* Main card */}
+        <div style={{ position:"relative", background:"#f8f4e8", borderRadius:"3px", padding:"32px 32px 28px 56px", boxShadow:"0 2px 12px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.4)", overflow:"hidden" }}>
+          {/* Paper texture overlay */}
+          <div style={{ position:"absolute", inset:0, backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E\")", pointerEvents:"none", opacity:0.4 }} />
+          {/* Ruled lines */}
+          <div style={{ position:"absolute", inset:0, backgroundImage:"repeating-linear-gradient(transparent, transparent 31px, rgba(160,185,210,0.18) 31px, rgba(160,185,210,0.18) 32px)", pointerEvents:"none" }} />
+          {/* Red margin line */}
+          <div style={{ position:"absolute", left:"44px", top:0, bottom:0, width:"1px", background:"rgba(200,80,80,0.2)", pointerEvents:"none" }} />
+          {/* Binding holes */}
+          <div style={{ position:"absolute", left:"14px", top:"20%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
+          <div style={{ position:"absolute", left:"14px", top:"50%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
+          <div style={{ position:"absolute", left:"14px", top:"80%", width:"10px", height:"10px", borderRadius:"50%", background:"rgba(0,0,0,0.08)", boxShadow:"inset 0 1px 2px rgba(0,0,0,0.15)" }} />
+
+          <div style={{ position:"relative" }}>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:"9px", fontWeight:700, letterSpacing:"0.24em", textTransform:"uppercase", color:"#8a7840", marginBottom:"14px", opacity:0.7 }}>✦ Did you know</div>
+            <p style={{ fontFamily:"'Georgia', serif", fontSize:"16px", lineHeight:"2.0", color:"#1c1810", whiteSpace:"pre-line", fontWeight:400 }}>{data.card}</p>
+          </div>
         </div>
       </div>
 
-      {/* Closing */}
-      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", fontStyle:"italic", color:"var(--text-2)", marginBottom:"24px", lineHeight:1.7 }}>{data.closing}</p>
+      {/* Closing line */}
+      <p style={{ fontFamily:"var(--font-ui)", fontSize:"14px", fontStyle:"italic", color:"var(--text-2)", marginBottom:"24px", lineHeight:1.8 }}>{data.closing}</p>
 
       {/* Quick reply chips */}
       {showReplies && (
@@ -823,8 +838,8 @@ function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
         </div>
       )}
 
-      {/* Alt openers */}
-      <div style={{ borderTop:"1px solid var(--border)", paddingTop:"20px" }}>
+      {/* Alt openers — hidden once conversation has started */}
+      {!isEngaged && <div style={{ borderTop:"1px solid var(--border)", paddingTop:"20px" }}>
         <div style={{ fontFamily:"var(--font-ui)", fontSize:"10px", fontWeight:500, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--text-3)", marginBottom:"12px" }}>Or explore a different door</div>
         <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
           {altOpeners.map(id => (
@@ -838,7 +853,7 @@ function DidYouKnowCard({ opener, onReply, onSelectOpener, exchangeCount }) {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -1022,14 +1037,24 @@ function TypingIndicator({ phrase }) {
 // ─────────────────────────────────────────────────────────────
 // MESSAGE BUBBLE
 // ─────────────────────────────────────────────────────────────
-function MessageBubble({ msg, isNew, onSaveElement }) {
+function MessageBubble({ msg, isNew, onSaveElement, copyMode, isSelected, isSelectionStart, onSelectStart, onSelectEnd }) {
   const isUser = msg.role === "user";
   const isEval = typeof msg.content === "string" && msg.content.startsWith("✦ ");
   const segments = !isUser ? parseSegments(msg.content || "") : null;
   const hasSparks = segments && segments.some(s => s.type === "spark");
 
+  const [hovered, setHovered] = useState(false);
   return (
-    <div style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", marginBottom:"20px", animation:isNew?"fadeUp 0.4s ease forwards":"none" }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display:"flex", justifyContent:isUser?"flex-end":"flex-start", marginBottom:"20px", animation:isNew?"fadeUp 0.4s ease forwards":"none", position:"relative", background: isSelected ? "rgba(201,168,76,0.04)" : "transparent", borderRadius:"var(--radius-sm)", transition:"background 0.2s", padding:"2px 0" }}>
+      {copyMode && hovered && (
+        <button onClick={isSelectionStart ? onSelectEnd : onSelectStart}
+          style={{ position:"absolute", left:isUser?undefined:"-28px", right:isUser?"-28px":undefined, top:"50%", transform:"translateY(-50%)", background: isSelectionStart ? "var(--gold)" : "var(--bg-card)", border:`1px solid ${isSelectionStart ? "var(--gold)" : "rgba(201,168,76,0.3)"}`, borderRadius:"50%", width:"18px", height:"18px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"8px", color: isSelectionStart ? "var(--bg)" : "var(--gold)", zIndex:5, flexShrink:0 }}>
+          {isSelectionStart ? "●" : "○"}
+        </button>
+      )}
       {!isUser && (
         <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: isEval ? "rgba(201,168,76,0.1)" : "rgba(201,168,76,0.08)", border:"1px solid rgba(201,168,76,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"13px", flexShrink:0, marginRight:"10px", marginTop:"3px", color:"var(--gold)" }}>
           {isEval ? "✦" : "∞"}
@@ -1083,6 +1108,11 @@ export default function App() {
   const [elementsVersion, setElementsVersion] = useState(0);
   const [pingVisible, setPingVisible] = useState(false);
   const [exchangeCount, setExchangeCount] = useState(0);
+  const [showDYK, setShowDYK] = useState(true);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [selectionEnd, setSelectionEnd] = useState(null);
+  const [copyMode, setCopyMode] = useState(false);
+  const [copyConfirmed, setCopyConfirmed] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -1251,6 +1281,7 @@ export default function App() {
       // New user — show Did You Know card, no AI call yet
       conversationRef.current = [];
       setMessages([]);
+      setShowDYK(true);
       setTimeout(() => inputRef.current?.focus(), 200);
       return;
     }
@@ -1329,7 +1360,7 @@ export default function App() {
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { activeOpenerRef.current = activeOpener; }, [activeOpener]);
 
-  const isReturning = sessionCount > 0 && conversationRef.current.filter(m => !m.content?.startsWith("__sys__")).length > 1;
+  const [isReturning] = useState(() => sessionCount > 0 && (journeyRef.current.messages || []).filter(m => !m.content?.startsWith("__sys__")).length > 1);
 
   // ── RENDER ──────────────────────────────────────────────────
   return (
@@ -1538,7 +1569,10 @@ export default function App() {
 
       <div style={{ minHeight:"100vh", background:"var(--bg)", position:"relative" }}>
         <FloatingSymbols />
-        <div style={{ position:"fixed", top:"35%", left:"50%", transform:"translate(-50%,-50%)", width:"700px", height:"700px", background:"radial-gradient(circle,var(--gold)04 0%,transparent 68%)", pointerEvents:"none", zIndex:0 }} />
+        <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
+          <div style={{ position:"absolute", top:"40%", left:"50%", transform:"translate(-50%,-50%)", width:"900px", height:"900px", background:"radial-gradient(ellipse, rgba(201,168,76,0.03) 0%, rgba(201,168,76,0.015) 30%, transparent 70%)", borderRadius:"50%" }} />
+          <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at center, transparent 40%, rgba(4,4,6,0.5) 100%)" }} />
+        </div>
 
         {/* ══ LOADING ══ */}
         {(screen === "loading" || authLoading) && (
@@ -1627,6 +1661,9 @@ export default function App() {
                   <span>{discovered.size}/{TOTAL_NODES}</span>
                 </button>
 
+                <button className="btn-icon" onClick={() => { setCopyMode(!copyMode); setSelectionStart(null); setSelectionEnd(null); }} style={{ borderColor: copyMode ? "rgba(201,168,76,0.4)" : "var(--border)", color: copyMode ? "var(--gold)" : "var(--text-3)" }}>
+                  {copyMode ? "✕ Cancel share" : "Share exchange"}
+                </button>
                 <button className="btn-icon" onClick={handleSignOut}>Sign out</button>
               </div>
             </div>
@@ -1634,7 +1671,7 @@ export default function App() {
             <div style={{ flex:1, overflowY:"auto", padding:"26px 0 10px" }}>
 
               {/* Did You Know card — shown for new users before first AI exchange */}
-              {!isReturning && messages.length === 0 && (
+              {!isReturning && showDYK && (
                 <DidYouKnowCard
                   opener={activeOpener}
                   onReply={sendMessage}
@@ -1644,12 +1681,54 @@ export default function App() {
               )}
 
               {messages.map((msg, i) => (
-                <MessageBubble key={i} msg={msg} isNew={i === newMsgIndex} onSaveElement={entry => {
-                  journeyRef.current.elements = [...(journeyRef.current.elements || []), entry];
-                  if (authUser) saveJourney(authUser.uid, journeyRef.current);
-                  setElementsVersion(v => v + 1);
-                }} />
+                <MessageBubble key={i} msg={msg} isNew={i === newMsgIndex}
+                  copyMode={copyMode}
+                  isSelected={selectionStart !== null && selectionEnd !== null && i >= Math.min(selectionStart, selectionEnd) && i <= Math.max(selectionStart, selectionEnd)}
+                  isSelectionStart={selectionStart === i}
+                  onSelectStart={() => { setSelectionStart(i); setSelectionEnd(null); setCopyConfirmed(false); }}
+                  onSelectEnd={() => { if (selectionStart !== null && i !== selectionStart) setSelectionEnd(i); }}
+                  onSaveElement={entry => {
+                    journeyRef.current.elements = [...(journeyRef.current.elements || []), entry];
+                    if (authUser) saveJourney(authUser.uid, journeyRef.current);
+                    setElementsVersion(v => v + 1);
+                  }} />
               ))}
+
+              {/* Copy exchange toolbar */}
+              {copyMode && selectionStart !== null && selectionEnd !== null && (
+                <div style={{ position:"sticky", bottom:"12px", display:"flex", justifyContent:"center", zIndex:10, marginTop:"12px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:"10px", background:"var(--bg-card)", border:"1px solid rgba(201,168,76,0.3)", borderRadius:"24px", padding:"10px 20px", boxShadow:"0 4px 24px rgba(0,0,0,0.6)" }}>
+                    <span style={{ fontFamily:"var(--font-ui)", fontSize:"12px", color:"var(--text-2)" }}>
+                      {Math.abs(selectionEnd - selectionStart) + 1} messages selected
+                    </span>
+                    <button onClick={() => {
+                      const start = Math.min(selectionStart, selectionEnd);
+                      const end = Math.max(selectionStart, selectionEnd);
+                      const selected = messages.slice(start, end + 1);
+                      const date = new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" });
+                      const lines = [
+                        "─────────────────────────────────────────",
+                        `MATHESIS  ·  Exchange  ·  ${date}`,
+                        "─────────────────────────────────────────",
+                        "",
+                      ];
+                      selected.forEach(msg => {
+                        const speaker = msg.role === "user" ? "YOU" : "MATHESIS";
+                        const text = (msg.content || "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/\[SPARK[^\]]*\][\s\S]*?\[\/SPARK\]/g, "").replace(/\[MATHEMATICIAN[^\]]*\][\s\S]*?\[\/MATHEMATICIAN\]/g, "").replace(/\[SAVE_ELEMENT\][\s\S]*?\[\/SAVE_ELEMENT\]/g, "").replace(/\[BRANCH:[^\]]*\]/g, "").replace(/\[CHALLENGE:[^\]]*\]/g, "").trim();
+                        if (text) { lines.push(speaker); lines.push(text); lines.push(""); }
+                      });
+                      lines.push("─────────────────────────────────────────");
+                      lines.push("Shared from mathesis.in");
+                      navigator.clipboard.writeText(lines.join("\n"));
+                      setCopyConfirmed(true);
+                      setTimeout(() => { setCopyConfirmed(false); setCopyMode(false); setSelectionStart(null); setSelectionEnd(null); }, 2000);
+                    }} className="btn-primary" style={{ padding:"7px 20px", fontSize:"12px" }}>
+                      {copyConfirmed ? "✓ Copied" : "Copy exchange"}
+                    </button>
+                    <button onClick={() => { setCopyMode(false); setSelectionStart(null); setSelectionEnd(null); }} className="btn-ghost" style={{ padding:"7px 12px", fontSize:"11px" }}>Cancel</button>
+                  </div>
+                </div>
+              )}
 
               {pendingChallenge && <ChallengeCard challenge={pendingChallenge} onSubmit={submitChallenge} onDismiss={() => setPendingChallenge(null)} />}
               {pendingBranch && !pendingChallenge && <BranchCard branch={pendingBranch} onChoose={chooseBranch} />}
